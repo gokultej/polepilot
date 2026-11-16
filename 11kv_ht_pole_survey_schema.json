@@ -1,0 +1,352 @@
+{
+  "survey_title": "Survey - 11KV HT Pole",
+  "section": "General (Section 1 of 1)",
+  "total_questions": 39,
+  "questions": [
+    {
+      "id": 1,
+      "field_name": "pole_erection_status",
+      "field_label": "Pole Erection Status *",
+      "is_required": true,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "Pole",
+        "Pole with Conductor"
+      ]
+    },
+    {
+      "id": 2,
+      "field_name": "pole_location_number",
+      "field_label": "Pole Location Number (Optional)",
+      "is_required": false,
+      "field_type": "text",
+      "max_length": 15
+    },
+    {
+      "id": 3,
+      "field_name": "pole_to_pole_distance",
+      "field_label": "Pole to pole distance *",
+      "is_required": true,
+      "field_type": "text",
+      "max_length": 5
+    },
+    {
+      "id": 4,
+      "field_name": "is_pin_point",
+      "field_label": "Is Pin Point? (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "id": 5,
+      "field_name": "pole_type",
+      "field_label": "Pole Type (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "Er. of 9.1M 280Kg WL w/o base plate",
+        "Er. of 11M PSCC Pole Excludng Pit Exc.",
+        "Er. of DP structure 9.1M 280KG poles"
+      ]
+    },
+    {
+      "id": 6,
+      "field_name": "er_of_stay_set_complete_exc_concrete",
+      "field_label": "Er. of Stay set complete (Exc.concrete) (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": 7,
+      "field_name": "stut",
+      "field_label": "STUT (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": 8,
+      "field_name": "no_of_channels_erected",
+      "field_label": "No. of Channels erected (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": 9,
+      "field_name": "er_of_11kv_polymer_insulators_with_pins",
+      "field_label": "Er. of 11KV Polymer insulators with pins (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 10,
+      "field_name": "er_of_11kv_com_polymer_insulator_c_and_t",
+      "field_label": "Er. of 11KV Com.Polymer Insulator (C&T) (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 11,
+      "field_name": "er_of_11kv_top_cleat_with_clamp_wt_4_69k",
+      "field_label": "Er.of 11KVTop cleat With Clamp(Wt:4.69K) (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 12,
+      "field_name": "er_of_special_clamp_50x6_ms_flat",
+      "field_label": "Er. of special clamp 50x6 MS Flat (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 13,
+      "field_name": "erection_of_spiral_earth_coil",
+      "field_label": "Erection of Spiral earth coil (Optional)",
+      "is_required": false,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": 14,
+      "field_name": "numbering_of_pole_with_ac_black_paint",
+      "field_label": "Numbering of pole with AC black paint *",
+      "is_required": true,
+      "field_type": "dropdown",
+      "dropdown_options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "id": 15,
+      "field_name": "remarks",
+      "field_label": "Remarks (Optional)",
+      "is_required": false,
+      "field_type": "textarea",
+      "max_length": 100
+    },
+    {
+      "id": 16,
+      "field_name": "se_3_type_box_x_arm_with_stut_33_11kv_lt",
+      "field_label": "S&E 3 type box X arm with stut(33/11KV/LT) (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 17,
+      "field_name": "se_of_ht_lt_box_type_x_arm_with_clamp",
+      "field_label": "S&E of HT/LT Box type X arm with clamp (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 18,
+      "field_name": "erection_of_200amps_ab_switch_horizontal_type",
+      "field_label": "Erection of 200Amps AB Switch(Horizantal Type) (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 19,
+      "field_name": "ci_earth_pipe",
+      "field_label": "CI Earth Pipe (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 20,
+      "field_name": "gi_earth_pipe",
+      "field_label": "GI Earth Pipe (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 21,
+      "field_name": "er_of_33kv_v_channel_tapping_channel_x_arm",
+      "field_label": "Er. Of 33KV V/channel/tapping channel 'X' arm (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 22,
+      "field_name": "er_of_33kv_top_cleat_wt_6_9_kgs",
+      "field_label": "Er. of 33KV Top Cleat (wt:6.9 Kgs) (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 23,
+      "field_name": "er_of_33kv_polymer_insulators_with_pin",
+      "field_label": "Er. of 33KV Polymer insulators with pin (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 24,
+      "field_name": "hard_rock",
+      "field_label": "Hard Rock (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 25,
+      "field_name": "pole_pit_excav_by_openblast_in_hard_rock",
+      "field_label": "Pole pit excav by openblast in hard rock (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 26,
+      "field_name": "cement_concrete_breaking",
+      "field_label": "Cement concrete Breaking (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 27,
+      "field_name": "9_1_mtr_power_drilling",
+      "field_label": "9.1 Mtr Power Drilling (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 28,
+      "field_name": "9_1_mtr_pole_concrete",
+      "field_label": "9.1 Mtr Pole concrete (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 29,
+      "field_name": "dis_and_re_er_of_9_1m_280kg_wl_pscc_poles",
+      "field_label": "Dis. & Re-Er. of 9.1M 280Kg WL PSCC poles (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 30,
+      "field_name": "dis_and_re_er_of_8_0m_200kg_wl_psccpoles",
+      "field_label": "Dis. & Re-Er. of 8.0M 200Kg WL PSCCpoles (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 31,
+      "field_name": "dis_of_9_1_mtr_pscc_pole_and_related_items",
+      "field_label": "Dis. of 9.1 Mtr PSCC Pole & related items (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 32,
+      "field_name": "dis_of_8_0_mtr_pscc_pole_and_related_items",
+      "field_label": "Dis. of 8.0 Mtr PSCC Pole & related items (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 33,
+      "field_name": "dis_of_11kv_v_cross_arm",
+      "field_label": "Dis. of 11KV 'V' cross arm (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 34,
+      "field_name": "dis_of_11kv_top_cleat",
+      "field_label": "Dis. of 11KV Top Cleat (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 35,
+      "field_name": "dis_of_11kv_pin_insulators",
+      "field_label": "Dis. of 11KV Pin Insulators (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 36,
+      "field_name": "dis_of_11kv_disc",
+      "field_label": "Dis. of 11KV Disc (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    },
+    {
+      "id": 37,
+      "field_name": "dis_of_55_sqmm_conductor",
+      "field_label": "Dis. of 55 sqmm Conductor (Optional)",
+      "is_required": false,
+      "field_type": "text",
+      "max_length": 5
+    },
+    {
+      "id": 38,
+      "field_name": "dis_of_34_sqmm_conductor",
+      "field_label": "Dis. of 34 sqmm Conductor (Optional)",
+      "is_required": false,
+      "field_type": "text",
+      "max_length": 5
+    },
+    {
+      "id": 39,
+      "field_name": "iron_pole",
+      "field_label": "Iron Pole (Optional)",
+      "is_required": false,
+      "field_type": "counter",
+      "default_value": 0
+    }
+  ]
+}

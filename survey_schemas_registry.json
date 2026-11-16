@@ -1,0 +1,236 @@
+{
+  "version": "1.0",
+  "total_schemas": 8,
+  "schemas": {
+    "11KV_HT_POLE": {
+      "schema_id": "11kv_ht_pole",
+      "title": "Survey - 11KV HT Pole",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "11kv_ht_pole",
+        "voltage_level": "11KV"
+      },
+      "questions": [
+        {
+          "id": 1,
+          "field_name": "pole_erection_status",
+          "field_label": "Pole Erection Status *",
+          "is_required": true,
+          "field_type": "dropdown",
+          "dropdown_options": ["Pole", "Pole with Conductor"],
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "if_class_detected",
+            "target_class": "conductor",
+            "if_found": "Pole with Conductor",
+            "if_not_found": "Pole"
+          }
+        },
+        {
+          "id": 2,
+          "field_name": "pole_location_number",
+          "field_label": "Pole Location Number (Optional)",
+          "is_required": false,
+          "field_type": "text",
+          "max_length": 15,
+          "auto_fill": {
+            "source": "ocr_text",
+            "ocr_key": "pole_number"
+          }
+        },
+        {
+          "id": 3,
+          "field_name": "pole_to_pole_distance",
+          "field_label": "Pole to pole distance *",
+          "is_required": true,
+          "field_type": "text",
+          "max_length": 5,
+          "auto_fill": {
+            "source": "gps_distance",
+            "unit": "meters"
+          }
+        },
+        {
+          "id": 4,
+          "field_name": "is_pin_point",
+          "field_label": "Is Pin Point? (Optional)",
+          "is_required": false,
+          "field_type": "dropdown",
+          "dropdown_options": ["Yes", "No"],
+          "auto_fill": {
+            "source": "gps_accuracy",
+            "threshold_meters": 3.0,
+            "if_below": "Yes",
+            "if_above": "No"
+          }
+        },
+        {
+          "id": 5,
+          "field_name": "pole_type",
+          "field_label": "Pole Type (Optional)",
+          "is_required": false,
+          "field_type": "dropdown",
+          "dropdown_options": [
+            "Er. of 9.1M 280Kg WL w/o base plate",
+            "Er. of 11M PSCC Pole Excludng Pit Exc.",
+            "Er. of DP structure 9.1M 280KG poles"
+          ],
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "class_match",
+            "class_mapping": {
+              "dp_structure": "Er. of DP structure 9.1M 280KG poles",
+              "pscc_11m": "Er. of 11M PSCC Pole Excludng Pit Exc.",
+              "pscc_9m": "Er. of 9.1M 280Kg WL w/o base plate"
+            },
+            "default": "Er. of 9.1M 280Kg WL w/o base plate"
+          }
+        },
+        {
+          "id": 6,
+          "field_name": "er_of_stay_set_complete_exc_concrete",
+          "field_label": "Er. of Stay set complete (Exc.concrete) (Optional)",
+          "is_required": false,
+          "field_type": "dropdown",
+          "dropdown_options": ["0", "1", "2", "3"],
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "count_class",
+            "target_class": "stay_set"
+          }
+        },
+        {
+          "id": 7,
+          "field_name": "stut",
+          "field_label": "STUT (Optional)",
+          "is_required": false,
+          "field_type": "dropdown",
+          "dropdown_options": ["0", "1", "2", "3"],
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "count_class",
+            "target_class": "stut_pole"
+          }
+        },
+        {
+          "id": 8,
+          "field_name": "no_of_channels_erected",
+          "field_label": "No. of Channels erected (Optional)",
+          "is_required": false,
+          "field_type": "dropdown",
+          "dropdown_options": ["0", "1", "2", "3"],
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "count_class",
+            "target_class": "channel_arm"
+          }
+        },
+        {
+          "id": 9,
+          "field_name": "er_of_11kv_polymer_insulators_with_pins",
+          "field_label": "Er. of 11KV Polymer insulators with pins (Optional)",
+          "is_required": false,
+          "field_type": "counter",
+          "default_value": 0,
+          "auto_fill": {
+            "source": "yolo_detection",
+            "rule": "count_class",
+            "target_class": "polymer_insulator_pin"
+          }
+        },
+        {
+          "id": 14,
+          "field_name": "numbering_of_pole_with_ac_black_paint",
+          "field_label": "Numbering of pole with AC black paint *",
+          "is_required": true,
+          "field_type": "dropdown",
+          "dropdown_options": ["Yes", "No"],
+          "auto_fill": {
+            "source": "ocr_text",
+            "rule": "has_ocr_text",
+            "if_true": "Yes",
+            "if_false": "No"
+          }
+        },
+        {
+          "id": 15,
+          "field_name": "remarks",
+          "field_label": "Remarks (Optional)",
+          "is_required": false,
+          "field_type": "textarea",
+          "max_length": 100,
+          "auto_fill": {
+            "source": "rule_engine",
+            "rule": "generate_summary_remarks"
+          }
+        }
+      ]
+    },
+    "33KV_HT_POLE": {
+      "schema_id": "33kv_ht_pole",
+      "title": "Survey - 33KV HT Pole",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "33kv_ht_pole",
+        "voltage_level": "33KV"
+      },
+      "questions": []
+    },
+    "LT_POLE": {
+      "schema_id": "lt_pole",
+      "title": "Survey - LT Pole",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "lt_pole",
+        "voltage_level": "LT"
+      },
+      "questions": []
+    },
+    "DTR_TRANSFORMER_POLE": {
+      "schema_id": "dtr_transformer_pole",
+      "title": "Survey - DTR / Transformer Pole Structure",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "transformer_pole",
+        "has_component": "transformer"
+      },
+      "questions": []
+    },
+    "SUBSTATION_GANTRY_STRUCTURE": {
+      "schema_id": "substation_gantry_structure",
+      "title": "Survey - Substation Gantry Structure",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "gantry_structure"
+      },
+      "questions": []
+    },
+    "33KV_DP_STRUCTURE": {
+      "schema_id": "33kv_dp_structure",
+      "title": "Survey - 33KV DP Structure",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "33kv_dp_structure"
+      },
+      "questions": []
+    },
+    "11KV_DP_STRUCTURE": {
+      "schema_id": "11kv_dp_structure",
+      "title": "Survey - 11KV DP Structure",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "11kv_dp_structure"
+      },
+      "questions": []
+    },
+    "SERVICE_LINE_POLE": {
+      "schema_id": "service_line_pole",
+      "title": "Survey - Service Line Pole",
+      "section": "General (Section 1 of 1)",
+      "trigger_conditions": {
+        "detected_class": "service_line_pole"
+      },
+      "questions": []
+    }
+  }
+}

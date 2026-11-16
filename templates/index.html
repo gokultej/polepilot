@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <script src="{{ url_for('static', filename='workspace-security.js') }}" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>{{ product_name }} — Survey workspace</title>
+    <script>
+        // Suppress Tailwind production warning immediately
+        (function () {
+            const _warn = console.warn;
+            console.warn = function () {
+                if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('cdn.tailwindcss.com')) return;
+                _warn.apply(console, arguments);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .tooltip-container {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip-box {
+            visibility: hidden;
+            width: 220px;
+            background-color: rgba(10, 12, 22, 0.98);
+            color: #fff;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 10px 14px;
+            position: absolute;
+            z-index: 999;
+            bottom: 125%;
+            /* Position above the text */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+        }
+
+        .tooltip-container:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Arrow */
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: rgba(10, 12, 22, 0.98) transparent transparent transparent;
+        }
+
+        /* ── Upload Guidance Panel ── */
+        .guidance-panel {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .guidance-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .guidance-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .guidance-body {
+            padding: 0 14px 12px 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .guidance-body.collapsed {
+            display: none;
+        }
+
+        .guidance-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .guidance-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .guidance-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 10px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+
+        .guidance-tip::before {
+            content: '•';
+            color: #3b82f6;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .badge-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .badge-gray {
+            background: rgba(100, 116, 139, 0.15);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .guidance-chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .guidance-chevron.open {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body class="bg-[#030712] min-h-screen text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
+    <div class="container py-4 sm:py-6 space-y-5 animate-fade-in">
+        <!-- Header -->
+        <header
+            class="flex flex-wrap sm:flex-nowrap justify-between items-center gap-3 bg-gray-900/60 p-3.5 sm:p-5 rounded-2xl border border-white/5 backdrop-blur-xl shadow-xl">
+            <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div
+                    class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 shadow-lg shadow-blue-900/10 overflow-hidden p-1.5 flex-shrink-0">
+                    <i class="fa-solid fa-tower-broadcast text-3xl text-blue-400" aria-label="PolePilot"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-white leading-none truncate">{{ product_name }}</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-widest font-bold">Portal v2.0</span>
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span class="text-[9px] text-emerald-400 font-semibold hidden xs:inline">Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voltage Badge in Header -->
+            <div id="voltage-badge" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-xs font-bold font-mono tracking-wide shadow-lg">
+                <i class="fa-solid fa-bolt text-yellow-400"></i>
+                <span id="voltage-badge-text">Voltage: Detecting...</span>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto sm:ml-0">
+                <!-- Stats Toggle Button -->
+                <button id="btnToggleStats" type="button"
+                    class="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white transition-all px-3 sm:px-4 py-2 h-9 sm:h-10 rounded-xl border border-blue-500/20 text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-chart-simple"></i> <span class="hidden sm:inline">Stats</span>
+                </button>
+
+                <div class="text-right hidden md:block border-r border-white/10 pr-3">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold tracking-widest leading-none mb-1">Operator</p>
+                    <p class="text-xs font-bold text-blue-400 leading-none">{{ session['user'] }}</p>
+                </div>
+
+                {% if role == 'admin' %}
+                <a href="/admin"
+                    class="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 transition-all rounded-xl border border-blue-500/20 text-[10px] font-bold uppercase tracking-widest h-9 sm:h-10">
+                    <i class="fa-solid fa-gauge text-[9px]"></i>
+                    Admin
+                </a>
+                {% endif %}
+
+                <a href="/logout" title="Sign out"
+                    class="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-all w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border border-red-500/20">
+                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Performance Dashboard -->
+        <div id="statsDashboardContainer" class="hidden space-y-6 animate-fade-in">
+            <div class="flex justify-between items-center">
+                <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-blue-500"></i> Performance Overview
+                </h2>
+                <div class="flex items-center gap-3">
+                    <span id="overallMetricsUpdatedText"
+                        class="text-[9px] text-gray-400 bg-gray-900/80 px-2.5 py-1 rounded border border-white/5 font-mono">Metrics
+                        updated weekly</span>
+                    <span id="statsStatusText"
+                        class="text-[9px] text-gray-500 font-mono uppercase tracking-widest">Loading stats...</span>
+                </div>
+                <!-- Active Datasets / Models Collapsible Button -->
+                <button id="btnActiveDatasets" type="button"
+                    class="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white transition-all px-3 py-1.5 rounded-lg border border-blue-500/20 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-cube"></i> Datasets & Models
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+                <div
+                    class="card p-6 bg-gray-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg">
+                    <div class="text-3xl font-bold text-blue-400 font-mono" id="statImagesTrained">0</div>
+                    <div class="text-gray-500 uppercase text-[9px] mt-1.5 tracking-widest font-bold">Total Images
+                        Annotated</div>
+                </div>
+                <div
+                    class="card p-6 bg-gray-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg">
+                    <div class="text-3xl font-bold text-purple-400 font-mono" id="statClassesTrained">0</div>
+                    <div class="text-gray-500 uppercase text-[9px] mt-1.5 tracking-widest font-bold">Total Classes</div>
+                </div>
+                <div
+                    class="card p-6 bg-gray-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg">
+                    <div class="text-3xl font-bold text-emerald-400 font-mono" id="statTotalAnnotations">0</div>
+                    <div class="text-gray-500 uppercase text-[9px] mt-1.5 tracking-widest font-bold">Total Objects
+                        Identified</div>
+                </div>
+                <div
+                    class="card p-6 bg-gray-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg relative tooltip-container">
+                    <div class="text-3xl font-bold text-amber-400 font-mono" id="statAvgConfidence">0%</div>
+                    <div
+                        class="text-gray-500 uppercase text-[9px] mt-1.5 tracking-widest font-bold border-b border-dashed border-gray-600/50 pb-0.5 cursor-help">
+                        Avg Confidence</div>
+                    <!-- Tooltip Box -->
+                    <div class="tooltip-box text-left">
+                        <div
+                            class="text-[9px] font-bold text-amber-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">
+                            Production Confidence Score</div>
+                        <div class="space-y-1 text-[8px] font-mono text-gray-300">
+                            <div class="leading-relaxed text-gray-400">Production confidence score calculated from
+                                Precision, Recall, mAP50, and mAP50-95. This is a validation-based confidence score, not
+                                raw YOLO prediction confidence.</div>
+                            <div class="pt-1 border-t border-white/5">Precision: <strong class="text-blue-400 font-bold"
+                                    id="tooltipOverallPrecision">0.0%</strong></div>
+                            <div>Recall: <strong class="text-purple-400 font-bold"
+                                    id="tooltipOverallRecall">0.0%</strong></div>
+                            <div>mAP 50: <strong class="text-emerald-400 font-bold"
+                                    id="tooltipOverallmAP50">0.0%</strong></div>
+                            <div>mAP 50-95: <strong class="text-amber-400 font-bold"
+                                    id="tooltipOverallmAP5095">0.0%</strong></div>
+                        </div>
+                        <div class="text-[7px] text-gray-500 font-mono border-t border-white/5 mt-1.5 pt-1"
+                            id="tooltipOverallUpdated">Updated: June 18, 2026</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Validation Metrics -->
+            <div class="space-y-3 mt-4">
+                <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-flask text-emerald-500 animate-pulse"></i> Model Validation Metrics (YOLO
+                    Evaluation)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+                    <!-- Overall Precision Card -->
+                    <div
+                        class="card p-5 bg-gradient-to-br from-blue-950/20 to-gray-900/40 border border-blue-500/10 rounded-2xl hover:border-blue-500/30 hover:scale-[1.01] transition-all shadow-lg text-left relative tooltip-container">
+                        <div
+                            class="text-[8px] text-gray-500 uppercase tracking-wider font-bold border-b border-dashed border-gray-600/50 pb-0.5 cursor-help inline-block">
+                            Overall Precision</div>
+                        <div class="text-xl font-bold text-white font-mono mt-0.5" id="statOverallPrecision">0.0%</div>
+                        <!-- Tooltip Box -->
+                        <div class="tooltip-box text-left" style="width: 250px;">
+                            <div
+                                class="text-[9px] font-bold text-blue-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">
+                                Precision</div>
+                            <div class="space-y-1.5 text-[8px] text-gray-300 leading-relaxed font-mono">
+                                <div><strong>Meaning:</strong> Accuracy of positive predictions. Out of all positive
+                                    detections the model made, it represents the percentage that were actually correct.
+                                    Higher precision means fewer false alarms.</div>
+                                <div class="pt-1 border-t border-white/5"><strong>Formula:</strong> <code
+                                        class="text-blue-300">TP / (TP + FP)</code></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Overall Recall Card -->
+                    <div
+                        class="card p-5 bg-gradient-to-br from-purple-950/20 to-gray-900/40 border border-purple-500/10 rounded-2xl hover:border-purple-500/30 hover:scale-[1.01] transition-all shadow-lg text-left relative tooltip-container">
+                        <div
+                            class="text-[8px] text-gray-500 uppercase tracking-wider font-bold border-b border-dashed border-gray-600/50 pb-0.5 cursor-help inline-block">
+                            Overall Recall</div>
+                        <div class="text-xl font-bold text-white font-mono mt-0.5" id="statOverallRecall">0.0%</div>
+                        <!-- Tooltip Box -->
+                        <div class="tooltip-box text-left" style="width: 250px;">
+                            <div
+                                class="text-[9px] font-bold text-purple-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">
+                                Recall (Sensitivity)</div>
+                            <div class="space-y-1.5 text-[8px] text-gray-300 leading-relaxed font-mono">
+                                <div><strong>Meaning:</strong> Detection coverage. Out of all actual positive objects
+                                    present in the images, it represents the percentage that the model successfully
+                                    found. Higher recall means fewer missed objects.</div>
+                                <div class="pt-1 border-t border-white/5"><strong>Formula:</strong> <code
+                                        class="text-purple-300">TP / (TP + FN)</code></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Overall mAP50 Card -->
+                    <div
+                        class="card p-5 bg-gradient-to-br from-emerald-950/20 to-gray-900/40 border border-emerald-500/10 rounded-2xl hover:border-emerald-500/30 hover:scale-[1.01] transition-all shadow-lg text-left relative tooltip-container">
+                        <div
+                            class="text-[8px] text-gray-500 uppercase tracking-wider font-bold border-b border-dashed border-gray-600/50 pb-0.5 cursor-help inline-block">
+                            Overall mAP50</div>
+                        <div class="text-xl font-bold text-white font-mono mt-0.5" id="statOverallmAP50">0.0%</div>
+                        <!-- Tooltip Box -->
+                        <div class="tooltip-box text-left" style="width: 250px;">
+                            <div
+                                class="text-[9px] font-bold text-emerald-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">
+                                mAP @ IoU 0.50</div>
+                            <div class="space-y-1.5 text-[8px] text-gray-300 leading-relaxed font-mono">
+                                <div><strong>Meaning:</strong> Mean Average Precision over all classes at an
+                                    Intersection over Union (IoU) overlap threshold of 0.50. This is a standard
+                                    benchmark.</div>
+                                <div class="pt-1 border-t border-white/5"><strong>Formula:</strong> <code
+                                        class="text-emerald-300">Mean of AP across classes at IoU=0.50</code></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Overall mAP50-95 Card -->
+                    <div
+                        class="card p-5 bg-gradient-to-br from-amber-950/20 to-gray-900/40 border border-amber-500/10 rounded-2xl hover:border-amber-500/30 hover:scale-[1.01] transition-all shadow-lg text-left relative tooltip-container">
+                        <div
+                            class="text-[8px] text-gray-500 uppercase tracking-wider font-bold border-b border-dashed border-gray-600/50 pb-0.5 cursor-help inline-block">
+                            Overall mAP50-95</div>
+                        <div class="text-xl font-bold text-white font-mono mt-0.5" id="statOverallmAP5095">0.0%</div>
+                        <!-- Tooltip Box -->
+                        <div class="tooltip-box text-left" style="width: 250px;">
+                            <div
+                                class="text-[9px] font-bold text-amber-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">
+                                mAP @ IoU 0.50:0.95</div>
+                            <div class="space-y-1.5 text-[8px] text-gray-300 leading-relaxed font-mono">
+                                <div><strong>Meaning:</strong> Average mAP across 10 IoU thresholds ranging from 0.50 to
+                                    0.95 (with 0.05 steps). Evaluates bounding box placement precision.</div>
+                                <div class="pt-1 border-t border-white/5"><strong>Formula:</strong> <code
+                                        class="text-amber-300">Avg(mAP<sub>50</sub>, mAP<sub>55</sub>, ..., mAP<sub>95</sub>)</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Breakdown Grid (Frequency Full-Width) -->
+            <div class="animate-fade-in">
+                <!-- Class Annotation Frequency -->
+                <div class="card p-6 bg-gray-900/40 border border-white/5 rounded-2xl shadow-xl space-y-4">
+                    <h3 class="text-[10px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-purple-400"></i> Class Annotation Frequency
+                    </h3>
+                    <div id="classesList" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div
+                            class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold col-span-2">
+                            Parsing label files...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Draft Restore Banner -->
+        <div id="draftRestoreBanner"
+            class="hidden flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl gap-4 animate-in slide-in-from-top duration-300">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-amber-300">Unsaved Draft Detected</p>
+                    <p id="draftInfo" class="text-[10px] text-amber-500/80 font-mono mt-0.5"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="btnRestoreDraft"
+                    class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all">
+                    Restore
+                </button>
+                <button id="btnDiscardDraft"
+                    class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-300 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all border border-white/5">
+                    Discard
+                </button>
+            </div>
+        </div>
+
+        <main class="dashboard-grid">
+            <!-- Left Side: Input & Action -->
+            <div class="space-y-4 sm:space-y-5">
+                <!-- 1. ENTER INPUT SYSTEM -->
+                <div class="card bg-gray-900/60 border-white/5 shadow-xl p-3.5 sm:p-5">
+                    <!-- Tab Selector -->
+                    <div class="flex border-b border-white/10 mb-3.5 sm:mb-4">
+                        <button id="tabImage"
+                            class="flex-1 pb-3 text-xs font-bold uppercase tracking-wider text-blue-500 border-b-2 border-blue-500 transition-all focus:outline-none flex items-center justify-center gap-1.5 sm:gap-2"
+                            onclick="switchInputMode('image')">
+                            <i class="fa-solid fa-image text-xs"></i><span class="truncate">Image Inference</span>
+                        </button>
+                        <button id="tabVideo"
+                            class="flex-1 pb-3 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition-all focus:outline-none flex items-center justify-center gap-1.5 sm:gap-2"
+                            onclick="switchInputMode('video')">
+                            <i class="fa-solid fa-video text-xs"></i><span class="truncate">Video Survey</span>
+                        </button>
+                        <button id="tabTree"
+                            class="flex-1 pb-3 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition-all focus:outline-none flex items-center justify-center gap-1.5 sm:gap-2"
+                            onclick="switchInputMode('tree')">
+                            <i class="fa-solid fa-tree text-xs"></i><span class="truncate">Pole Vegetation</span>
+                        </button>
+                    </div>
+
+                    <!-- Evaluator Demo Samples Panel (Compact Toolbar) -->
+                    <div id="demoSamplesCard" class="mb-3 p-2.5 sm:p-3 rounded-xl bg-gray-950/60 border border-blue-500/20">
+                        <div class="flex items-center justify-between mb-2 px-1">
+                            <div class="flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Quick Test Samples</span>
+                                <span class="text-[8px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-bold">1-Click Test</span>
+                            </div>
+                            <span class="text-[9px] text-gray-400 hidden sm:inline">Click any sample to load & inspect</span>
+                        </div>
+                        
+                        <!-- Horizontal Scrollable Container -->
+                        <div id="demoSamplesList" class="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-gray-700">
+                            <div class="text-[10px] text-gray-500 py-1">Loading sample files...</div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Strip (Thumbnail view when multiple images uploaded) -->
+                    <div id="batchStripWrapper" class="hidden mb-3 p-2 rounded-xl bg-gray-950/70 border border-white/5">
+                        <div class="flex items-center justify-between mb-1 px-1">
+                            <span id="batchCount" class="text-[9px] font-bold uppercase tracking-wider text-gray-400">0 Files</span>
+                            <span class="text-[9px] text-blue-400 font-semibold">Selected Views</span>
+                        </div>
+                        <div id="batchStrip" class="flex items-center gap-2 overflow-x-auto pb-1"></div>
+                    </div>
+
+                    <!-- Image Dropzone -->
+                    <div id="dropZone"
+                        class="card p-5 sm:p-8 border-2 border-dashed border-white/10 hover:border-blue-500/40 bg-gray-950/40 cursor-pointer transition-all flex flex-col items-center justify-center gap-4 group relative overflow-hidden min-h-[200px] sm:min-h-[260px]">
+                        <input type="file" id="upload" class="hidden" accept="image/*" multiple />
+
+                        <div id="uploadPrompt" class="space-y-3 text-center">
+                            <div
+                                class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-800/80 rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 group-hover:bg-blue-600/20 transition-all border border-white/5">
+                                <i
+                                    class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+                            </div>
+                            <div>
+                                <p id="uploadPromptTitle"
+                                    class="text-gray-200 font-bold uppercase tracking-tight text-xs sm:text-sm">Select inspection
+                                    image(s)</p>
+                                <p id="uploadPromptSubtitle"
+                                    class="text-[9px] sm:text-[10px] text-gray-500 mt-1 uppercase font-semibold tracking-widest">DRAG AND DROP OR CLICK TO BROWSE</p>
+                            </div>
+                        </div>
+
+                        <!-- Image Preview (Nested in dropzone area when loaded) -->
+                        <div id="imageContainer"
+                            class="relative hidden rounded-xl border border-white/10 bg-black/90 overflow-hidden shadow-2xl max-w-full flex items-center justify-center">
+                            <img id="preview" class="block max-w-full max-h-[50vh] sm:max-h-[500px] w-auto h-auto object-contain mx-auto" />
+                            <svg id="detectionOverlay"
+                                class="absolute top-0 left-0 w-full h-full pointer-events-none"></svg>
+                            <div id="manualPointHud" class="absolute inset-0 pointer-events-none"></div>
+                        </div>
+                    </div>
+
+                    <!-- Image Guidance Panel -->
+                    <div id="imageGuidancePanel" class="guidance-panel mt-4">
+                        <div class="guidance-header" onclick="toggleGuidance('image')">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-info text-blue-400 text-[10px]"></i>
+                                <span id="imageGuidanceTitle"
+                                    class="text-[9px] font-bold uppercase tracking-widest text-gray-400">Image Capture
+                                    Guidelines</span>
+                            </div>
+                            <i id="imageGuidanceChevron"
+                                class="fa-solid fa-chevron-down text-[9px] text-gray-500 guidance-chevron open"></i>
+                        </div>
+                        <div id="imageGuidanceBody" class="guidance-body">
+                            <p id="imageGuidanceSubtitle" class="text-[9px] text-gray-500 leading-relaxed px-1 pb-1">
+                            </p>
+                            <div id="imageGuidanceSections"></div>
+                        </div>
+                    </div>
+                    <!-- Video Dropzone -->
+                    <div id="videoDropZone"
+                        class="card p-10 border-2 border-dashed border-white/5 hover:border-blue-500/30 bg-gray-900/40 cursor-pointer transition-all flex flex-col items-center justify-center gap-6 group relative overflow-hidden hidden">
+                        <input type="file" id="videoUpload" class="hidden" accept="video/mp4,video/x-m4v,video/*" />
+
+                        <div id="videoUploadPrompt" class="space-y-4 text-center">
+                            <div
+                                class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-file-video text-2xl text-gray-400 group-hover:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-300 font-bold uppercase tracking-tight text-xs">Select survey video
+                                    (.mp4/.avi)</p>
+                                <p class="text-[9px] text-gray-500 mt-1 uppercase font-bold tracking-widest">DRAG AND
+                                    DROP OR CLICK</p>
+                            </div>
+                        </div>
+
+                        <!-- Video Preview -->
+                        <div id="videoContainer"
+                            class="relative hidden rounded-xl border border-white/10 bg-black overflow-hidden shadow-2xl w-full">
+                            <video id="videoPreview" controls class="block w-full max-h-[400px]"></video>
+                        </div>
+                    </div>
+                    <!-- Video Guidance Panel -->
+                    <div id="videoGuidancePanel" class="guidance-panel mt-4 hidden">
+                        <div class="guidance-header" onclick="toggleGuidance('video')">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-info text-blue-400 text-[10px]"></i>
+                                <span id="videoGuidanceTitle"
+                                    class="text-[9px] font-bold uppercase tracking-widest text-gray-400">Video Survey
+                                    Guidelines</span>
+                            </div>
+                            <i id="videoGuidanceChevron"
+                                class="fa-solid fa-chevron-down text-[9px] text-gray-500 guidance-chevron open"></i>
+                        </div>
+                        <div id="videoGuidanceBody" class="guidance-body">
+                            <p id="videoGuidanceSubtitle" class="text-[9px] text-gray-500 leading-relaxed px-1 pb-1">
+                            </p>
+                            <div id="videoGuidanceSections"></div>
+                        </div>
+                    </div>
+
+                    <div id="treeSecondaryControls" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Pole
+                                        Context Photo</p>
+                                    <p id="treePrimaryStatus" class="text-xs text-gray-400 mt-1">Required</p>
+                                </div>
+                                <button id="btnRemoveTreePrimary" type="button"
+                                    class="hidden w-8 h-8 rounded-lg bg-white/5 hover:bg-rose-500/20 text-gray-400 hover:text-rose-300 transition-all">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <p class="mt-3 text-[10px] leading-5 text-slate-400">Use one full image that shows the pole,
+                                wires and nearby trees or branches.</p>
+                        </div>
+                        <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-blue-300">Pole Context
+                                    Meta</p>
+                                <p class="text-xs text-gray-400 mt-1">Optional inputs for report tracking</p>
+                            </div>
+                            <input id="treePoleId" type="text" placeholder="Pole ID (optional)"
+                                class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500/40">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="treeLatitude" type="text" placeholder="Latitude"
+                                    class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500/40">
+                                <input id="treeLongitude" type="text" placeholder="Longitude"
+                                    class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500/40">
+                            </div>
+                            <p class="text-[10px] leading-5 text-slate-400">Risk is calculated from pole, wire and tree
+                                geometry first. Species runs only on risky or user-selected crops.</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. RUN INTERFACE (Below Inputs) -->
+                    <div class="flex gap-3 mt-4 sm:mt-5">
+                        <button id="btnRun" onclick="runAnalysis()"
+                            class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex-1 h-[48px] sm:h-[52px] rounded-xl shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2.5 active:scale-98 border border-blue-400/20 font-bold text-xs sm:text-sm uppercase tracking-wider">
+                            <i class="fa-solid fa-microscope text-sm"></i>
+                            <span class="btn-text">Run Inspection</span>
+                            <div
+                                class="loader hidden flex-shrink-0 w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
+                            </div>
+                        </button>
+                        <button id="btnCancel" onclick="resetSession()" title="Reset Inspection"
+                            class="bg-gray-800/80 hover:bg-rose-500/20 text-gray-400 hover:text-rose-300 w-12 sm:w-14 h-[48px] sm:h-[52px] rounded-xl transition-all flex items-center justify-center active:scale-95 border border-white/5">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Advanced Tools (Secondary) -->
+                <div class="flex flex-wrap items-center gap-2 px-1">
+                    <button id="btnDrawMode" onclick="toggleDrawMode()"
+                        class="px-3.5 py-2 bg-gray-800/40 hover:bg-gray-700/50 text-gray-400 hover:text-gray-200 rounded-xl text-[9px] font-bold uppercase transition-all flex items-center gap-1.5 border border-white/5 active:scale-95">
+                        <i class="fa-solid fa-pen-nib"></i> Manual Draw
+                    </button>
+                    <button id="btnARMode" onclick="toggleARMode()"
+                        class="px-3.5 py-2 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-500/70 hover:text-emerald-400 rounded-xl text-[9px] font-bold uppercase transition-all flex items-center gap-1.5 border border-emerald-500/10 active:scale-95">
+                        <i class="fa-solid fa-vr-cardboard"></i> AR Mode
+                    </button>
+                    <div id="drawStatus"
+                        class="hidden items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 rounded-full border border-rose-500/20">
+                        <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
+                        <span class="text-[8px] text-rose-500 font-bold uppercase tracking-widest">Draw Active</span>
+                    </div>
+                </div>
+
+                <!-- AR Video Container (Hidden by default) -->
+                <div id="arContainer"
+                    class="relative hidden rounded-2xl border border-emerald-500/20 shadow-2xl overflow-hidden w-full h-[400px] bg-black">
+                    <video id="arVideo" autoplay playsinline
+                        class="absolute top-0 left-0 w-full h-full object-cover"></video>
+                    <canvas id="arCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Side: Analysis Results -->
+            <div class="space-y-4 sm:space-y-5 flex flex-col h-full">
+                <div class="card bg-gray-900/60 border-white/5 flex-1 flex flex-col p-4 sm:p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2
+                            class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-blue-500"></i>
+                            REAL-TIME ANALYSIS
+                        </h2>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="undo()" title="Undo"
+                                class="bg-white/5 hover:bg-white/10 w-7 h-7 rounded-lg flex items-center justify-center transition-all text-gray-400 hover:text-white">
+                                <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                            </button>
+                            <button onclick="redo()" title="Redo"
+                                class="bg-white/5 hover:bg-white/10 w-7 h-7 rounded-lg flex items-center justify-center transition-all text-gray-400 hover:text-white">
+                                <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Master Identity Card -->
+                    <div id="masterIdentityCard"
+                        class="hidden animate-in fade-in zoom-in duration-500 mb-4 p-4 sm:p-5 bg-gradient-to-br from-blue-950/40 via-indigo-950/30 to-purple-950/30 border border-blue-500/25 rounded-2xl shadow-lg">
+                        <div
+                            class="flex items-center justify-between mb-2.5 text-[9px] font-bold uppercase tracking-wider text-blue-400">
+                            <span id="masterVoltage"
+                                class="px-2.5 py-0.5 bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30 font-mono font-bold">-- V</span>
+                            <span id="masterConfidence" class="font-mono text-gray-400">CONF: --%</span>
+                        </div>
+                        <h1 id="masterClass" class="text-base sm:text-lg font-bold text-white mb-2 leading-tight tracking-tight">
+                            ANALYZING...</h1>
+
+                        <div id="poleStabilityRow"
+                            class="hidden flex items-center justify-between py-2 border-t border-white/5 mb-2 mt-1">
+                            <span class="text-[9px] text-gray-400 font-bold uppercase">Pole Stability</span>
+                            <div class="flex items-center gap-2">
+                                <span id="poleLeanAngle" class="text-[10px] font-mono text-white">0.0°</span>
+                                <span id="poleStatusBadge"
+                                    class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase"></span>
+                            </div>
+                        </div>
+
+                        <!-- Max Batch Hardware Counts -->
+                        <div id="batchCountsRow"
+                            class="hidden flex flex-wrap gap-1.5 py-2 border-t border-white/5 mb-1">
+                        </div>
+                    </div>
+
+                    <!-- Results List -->
+                    <div id="resultBox" class="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar max-h-[380px] sm:max-h-[460px]">
+                        <div class="text-center py-12 sm:py-16 opacity-30">
+                            <i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-gray-500"></i>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Inspection findings will appear here</p>
+                            <p class="text-[9px] text-gray-500 mt-1">Click any sample above to see immediate detections</p>
+                        </div>
+                    </div>
+
+                    <!-- Survey Questionnaire Form Container -->
+                    <div id="survey-form-container" class="mt-4"></div>
+
+                    <!-- SUBMIT SECTION (Bottom Right) -->
+                    <div id="submitSection" class="hidden mt-4 pt-4 border-t border-white/5 space-y-3">
+                        <div class="grid grid-cols-1 gap-2">
+                            <button id="finalSubmitBtn" onclick="submitAsset()" disabled
+                                class="bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl opacity-50 cursor-not-allowed transition-all uppercase font-bold text-[10px] sm:text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-blue-900/20">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> SUBMIT RESULTS
+                            </button>
+                        </div>
+                        <p class="text-center text-[8px] text-gray-500 uppercase tracking-widest leading-none">
+                            Subject to verification in Admin Cloud
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="labelPickerBackdrop" onclick="cancelManualDraw(event)"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"></div>
+    <div id="labelPickerModal"
+        class="hidden fixed z-[101] bg-gray-900 border border-white/10 p-6 rounded-2xl shadow-2xl w-[90%] max-w-[340px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div class="space-y-6">
+            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Select Category</h3>
+            <div id="pickerOptions" class="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar"></div>
+            <div class="h-px bg-white/5"></div>
+            <input type="text" id="customLabelInput" placeholder="Custom name..."
+                class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-blue-500/50">
+            <button onclick="saveManualDraw(null)"
+                class="w-full py-4 bg-blue-600 text-white text-[11px] font-bold uppercase rounded-xl">Save
+                Annotation</button>
+        </div>
+    </div>
+
+    <!-- Datasets & Models Modal -->
+    <div id="datasetsModalBackdrop" onclick="toggleActiveDatasetsModal()"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] transition-opacity duration-300"></div>
+    <div id="datasetsModal"
+        class="hidden fixed z-[101] bg-gray-900 border border-white/10 p-6 rounded-2xl shadow-2xl w-[95%] max-w-[850px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform scale-95 transition-all duration-300">
+        <div class="space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-white/5">
+                <h3
+                    class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 font-['Outfit']">
+                    <i class="fa-solid fa-cube"></i> Datasets & Models
+                </h3>
+                <button onclick="toggleActiveDatasetsModal()" class="text-gray-500 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                <!-- Left Section: Active Datasets -->
+                <div class="space-y-3">
+                    <h4
+                        class="text-[10px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-white/5">
+                        <i class="fa-solid fa-database"></i> Active Dataset Folders
+                    </h4>
+                    <div id="datasetsList" class="space-y-3">
+                        <div class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold">
+                            Scanning dataset folders...</div>
+                    </div>
+                </div>
+                <!-- Right Section: Trained Model Files -->
+                <div class="space-y-3">
+                    <h4
+                        class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-white/5">
+                        <i class="fa-solid fa-brain"></i> Trained Model Files
+                    </h4>
+                    <div id="modelsList" class="space-y-3">
+                        <div class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold">Loading
+                            model files...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='pole_survey_classifier.js') }}"></script>
+    <script>
+        /* ── Upload Guidance Loader ── */
+        (function () {
+            // Toggle expand / collapse
+            window.toggleGuidance = function (type) {
+                const body = document.getElementById(type + 'GuidanceBody');
+                const chevron = document.getElementById(type + 'GuidanceChevron');
+                if (!body) return;
+                const collapsed = body.classList.toggle('collapsed');
+                chevron.classList.toggle('open', !collapsed);
+            };
+            // Build one section block
+            function buildSection(sec) {
+                const badgeClass = 'badge-' + (sec.badge_color || 'gray');
+                const tips = sec.tips.map(t =>
+                    `<div class="guidance-tip">${t}</div>`
+                ).join('');
+                return `
+                <div class="guidance-section">
+                    <div class="guidance-section-header">
+                        <i class="fa-solid ${sec.icon} text-[10px] text-blue-400"></i>
+                        <span class="text-[10px] font-bold text-white">${sec.heading}</span>
+                        <span class="ml-auto text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${badgeClass}">${sec.badge}</span>
+                    </div>
+                    ${tips}
+                </div>`;
+            }
+            // Render into DOM
+            function renderGuidance(type, data) {
+                const d = data[type];
+                if (!d) return;
+                document.getElementById(type + 'GuidanceTitle').textContent = d.title || '';
+                document.getElementById(type + 'GuidanceSubtitle').textContent = d.subtitle || '';
+                const container = document.getElementById(type + 'GuidanceSections');
+                container.innerHTML = (d.sections || []).map(buildSection).join('');
+            }
+            // Fetch the JSON config
+            fetch('/static/upload_guidance.json?v=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    renderGuidance('image', data);
+                    renderGuidance('video', data);
+                })
+                .catch(e => console.warn('Guidance config not loaded:', e));
+            // Show/hide panels when switching tabs
+            const origSwitch = window.switchInputMode;
+            window.switchInputMode = function (mode) {
+                if (origSwitch) origSwitch(mode);
+                const imgPanel = document.getElementById('imageGuidancePanel');
+                const vidPanel = document.getElementById('videoGuidancePanel');
+                if (imgPanel) imgPanel.classList.toggle('hidden', mode !== 'image');
+                if (vidPanel) vidPanel.classList.toggle('hidden', mode !== 'video');
+
+                const surveyContainer = document.getElementById('survey-form-container');
+                if (surveyContainer) {
+                    surveyContainer.style.display = (mode === 'image') ? 'block' : 'none';
+                }
+            };
+        })();
+        let userStatsInFlight = false;
+        let userStatsRetryDelay = 30000;
+
+        async function loadUserStats() {
+            if (userStatsInFlight) return;
+            userStatsInFlight = true;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 35000);
+            const statusText = document.getElementById('statsStatusText');
+            if (statusText) statusText.textContent = 'Loading stats...';
+
+            try {
+                const res = await fetch('/api/training_stats', {
+                    signal: controller.signal,
+                    cache: 'no-store'
+                });
+                if (!res.ok) {
+                    let message = `Stats unavailable (${res.status})`;
+                    try {
+                        const err = await res.json();
+                        if (err.message) message = err.message;
+                    } catch (_) { }
+                    if (statusText) statusText.textContent = message;
+                    return;
+                }
+                const s = await res.json();
+                userStatsRetryDelay = 30000;
+                if (statusText) {
+                    const updatedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    statusText.textContent = `Updated ${updatedAt}`;
+                }
+
+                // Update basic metrics
+                document.getElementById('statImagesTrained').textContent = s.total_samples || 0;
+                document.getElementById('statClassesTrained').textContent = s.total_classes || 0;
+                document.getElementById('statTotalAnnotations').textContent = s.total_annotations || 0;
+
+                let displayAvgConf = null;
+                let rawConf = (typeof s.avg_confidence === 'number') ? s.avg_confidence : ((typeof s.overall_avg_confidence === 'number') ? Number(s.overall_avg_confidence) : null);
+                if (rawConf !== null) {
+                    let scaledConf = (rawConf >= 0 && rawConf <= 1) ? (rawConf * 100) : rawConf;
+                    displayAvgConf = scaledConf.toFixed(1);
+                }
+                document.getElementById('statAvgConfidence').textContent = displayAvgConf === null ? '--' : (displayAvgConf + '%');
+
+                // Update overall validation metrics
+                try {
+                    const setValMetric = (elemId, val) => {
+                        const elem = document.getElementById(elemId);
+                        if (elem) {
+                            elem.textContent = typeof val === 'number' ? (val * 100).toFixed(1) + '%' : '0.0%';
+                        }
+                    };
+                    setValMetric('statOverallPrecision', s.overall_precision);
+                    setValMetric('statOverallRecall', s.overall_recall);
+                    setValMetric('statOverallmAP50', s.overall_map50);
+                    setValMetric('statOverallmAP5095', s.overall_map5095);
+
+                    // Populate tooltips
+                    setValMetric('tooltipOverallPrecision', s.overall_precision);
+                    setValMetric('tooltipOverallRecall', s.overall_recall);
+                    setValMetric('tooltipOverallmAP50', s.overall_map50);
+                    setValMetric('tooltipOverallmAP5095', s.overall_map5095);
+
+                    const lastUpdatedStr = (s.validation_metrics && s.validation_metrics.last_updated) || 'June 18, 2026, 10:39 AM';
+                    const tooltipUpdated = document.getElementById('tooltipOverallUpdated');
+                    if (tooltipUpdated) {
+                        tooltipUpdated.textContent = `Updated: ${lastUpdatedStr}`;
+                    }
+
+                    const overallUpdatedText = document.getElementById('overallMetricsUpdatedText');
+                    if (overallUpdatedText) {
+                        overallUpdatedText.textContent = `Metrics updated weekly: ${lastUpdatedStr}`;
+                    }
+                } catch (err) {
+                    console.error("[loadUserStats] Error updating overall validation metrics:", err);
+                }
+
+                // Helper to match granular class name to detection average confidence
+                const getAvgConf = (clsName, avgConfs) => {
+                    if (!avgConfs) return '--';
+                    const name = clsName.toUpperCase().replace(/\s+/g, '_');
+
+                    const getRawVal = (k) => {
+                        let val = avgConfs[k];
+                        if (val === undefined) return undefined;
+                        if (typeof val === 'number' && val > 0 && val <= 1) {
+                            return Math.round(val * 100);
+                        }
+                        return val;
+                    };
+
+                    let directVal = getRawVal(name);
+                    if (directVal !== undefined) return directVal + '%';
+
+                    if (name.includes('INS_') || name.includes('INSULATOR') || name.includes('INSULATORS') || name.includes('PIN') || name.includes('DISC') || name.includes('SHACKLE')) {
+                        let insVal = getRawVal('INSULATOR') || getRawVal('INSULATORS') || getRawVal('HT_PIN') || getRawVal('LT_PIN') || getRawVal('PIN') || getRawVal('HT_DISC') || getRawVal('LT_DISC') || getRawVal('SHACKLE');
+                        if (insVal !== undefined) return insVal + '%';
+                    }
+                    if (name.includes('POLE')) {
+                        let poleVal = getRawVal('POLE') || getRawVal('STRUT_POLE') || getRawVal('MAIN_POLE');
+                        if (poleVal !== undefined) return poleVal + '%';
+                    }
+                    if (name.includes('CONDUCTOR') || name.includes('WIRE') || name.includes('CABLE')) {
+                        let condVal = getRawVal('CONDUCTOR') || getRawVal('WIRE_BROKEN');
+                        if (condVal !== undefined) return condVal + '%';
+                    }
+                    if (name.includes('CROSS') || name.includes('ARM') || name.includes('CHANNEL') || name.includes('CLEAT')) {
+                        let armVal = getRawVal('CROSSARM') || getRawVal('V_CROSS_ARM') || getRawVal('SIDE_ARM') || getRawVal('TAPPING_ARM') || getRawVal('TOP_CLEAT') || getRawVal('BOX_ARM');
+                        if (armVal !== undefined) return armVal + '%';
+                    }
+                    if (name.includes('LIGHT') || name.includes('LAMP')) {
+                        let lightVal = getRawVal('STREET_LIGHT');
+                        if (lightVal !== undefined) return lightVal + '%';
+                    }
+
+                    for (const key in avgConfs) {
+                        if (name.includes(key) || key.includes(name)) {
+                            let val = getRawVal(key);
+                            if (val !== undefined) return val + '%';
+                        }
+                    }
+                    return '--';
+                };
+
+                // Update Active Dataset Folders
+                try {
+                    const datasetsContainer = document.getElementById('datasetsList');
+                    if (datasetsContainer && s.datasets) {
+                        if (s.datasets.length === 0) {
+                            datasetsContainer.innerHTML = `<div class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold">No active datasets found</div>`;
+                        } else {
+                            datasetsContainer.innerHTML = s.datasets.map(d => `
+                                <div class="flex justify-between items-center bg-gray-955/40 p-3.5 rounded-xl border border-white/5 hover:border-blue-500/20 transition-all font-sans">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-blue-500/10 text-blue-400 w-8 h-8 rounded-lg flex items-center justify-center border border-blue-500/25">
+                                            <i class="fa-solid fa-folder-open text-xs"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="text-[11px] font-bold text-white">${d.name}</div>
+                                            <div class="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">${d.annotations || 0} objects identified</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[11px] font-mono font-bold text-blue-400 bg-blue-500/5 px-2.5 py-1 rounded-lg border border-blue-500/10">${d.count} images</div>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                } catch (err) {
+                    console.error("[loadUserStats] Error updating active dataset folders list:", err);
+                }
+
+                // Update Class Annotation Frequencies
+                try {
+                    const classesContainer = document.getElementById('classesList');
+                    if (classesContainer && s.by_class) {
+                        const totalAnns = s.total_annotations || 1;
+                        const sortedClasses = Object.entries(s.by_class).sort((a, b) => b[1] - a[1]);
+
+                        const getClassValidationMetrics = (clsName, valMetrics) => {
+                            if (!valMetrics) return null;
+                            const name = clsName.toLowerCase().replace(/\s+/g, '_');
+
+                            for (const modelKey in valMetrics) {
+                                const modelObj = valMetrics[modelKey];
+                                if (!modelObj || typeof modelObj !== 'object') continue;
+                                const classMetrics = modelObj.class_metrics;
+                                if (!classMetrics || typeof classMetrics !== 'object') continue;
+
+                                let entry = classMetrics[name];
+                                if (!entry) {
+                                    let mappedName = name;
+                                    if (name === 'tapping_channel') mappedName = 'tapping_arm';
+                                    else if (name === 'side_arm_channel') mappedName = 'side_arm';
+                                    else if (name === 't_rising_channel') mappedName = 't_rising';
+
+                                    if (classMetrics[mappedName]) {
+                                        entry = classMetrics[mappedName];
+                                    } else if (name === 'insulators' && (classMetrics['insulators'] || classMetrics['insulator'])) {
+                                        entry = classMetrics['insulators'] || classMetrics['insulator'];
+                                    } else if (['ht_pin', 'lt_pin', 'shackle_insulator', 'ht_disc'].includes(name) && (classMetrics['insulators'] || classMetrics['insulator'])) {
+                                        entry = classMetrics['insulators'] || classMetrics['insulator'];
+                                    }
+                                }
+
+                                if (entry && typeof entry === 'object') {
+                                    return entry;
+                                }
+                            }
+                            return null;
+                        };
+
+                        if (sortedClasses.length === 0) {
+                            classesContainer.innerHTML = `<div class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold col-span-2">No identified objects found</div>`;
+                        } else {
+                            const confidenceSource = s.class_confidence || s.avg_confidences || {};
+                            const lastUpdatedStr = (s.validation_metrics && s.validation_metrics.last_updated) || 'June 18, 2026, 10:39 AM';
+
+                            classesContainer.innerHTML = sortedClasses.map(([cname, count]) => {
+                                const pct = Math.min(100, Math.round((count / totalAnns) * 100));
+                                const confStr = getAvgConf(cname, confidenceSource);
+
+                                const m = getClassValidationMetrics(cname, s.validation_metrics);
+                                let tooltipHtml = '';
+                                let cursorClass = '';
+                                let borderClass = '';
+                                if (m) {
+                                    cursorClass = 'cursor-help';
+                                    borderClass = 'border-b border-dashed border-gray-600/50 pb-0.5';
+                                    tooltipHtml = `
+                                        <div class="tooltip-box text-left">
+                                            <div class="text-[9px] font-bold text-purple-400 uppercase border-b border-white/10 pb-1 mb-1.5 tracking-wider">${cname} Metrics</div>
+                                            <div class="space-y-1 text-[8px] font-mono text-gray-300">
+                                                <div>Precision: <strong class="text-blue-400 font-bold">${typeof m.precision === 'number' ? (m.precision * 100).toFixed(1) : '0.0'}%</strong></div>
+                                                <div>Recall: <strong class="text-purple-400 font-bold">${typeof m.recall === 'number' ? (m.recall * 100).toFixed(1) : '0.0'}%</strong></div>
+                                                <div>mAP 50: <strong class="text-emerald-400 font-bold">${typeof m.map50 === 'number' ? (m.map50 * 100).toFixed(1) : '0.0'}%</strong></div>
+                                                <div>mAP 50-95: <strong class="text-amber-400 font-bold">${typeof m.map5095 === 'number' ? (m.map5095 * 100).toFixed(1) : '0.0'}%</strong></div>
+                                            </div>
+                                            <div class="text-[7px] text-gray-500 font-mono border-t border-white/5 mt-1.5 pt-1">Updated: ${lastUpdatedStr}</div>
+                                        </div>
+                                    `;
+                                }
+
+                                return `
+                                    <div class="space-y-2 p-3 bg-gray-955/20 rounded-xl border border-white/5 hover:border-purple-500/20 transition-all font-sans">
+                                        <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
+                                            <span class="text-gray-300">${cname}</span>
+                                            <span class="text-purple-400 font-mono bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/10">${count} identified (${pct}%)</span>
+                                        </div>
+                                        <div class="w-full bg-gray-950/80 h-1.5 rounded-full overflow-hidden border border-white/5">
+                                            <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                        </div>
+                                        <div class="flex justify-between items-center text-[8px] text-gray-500 font-mono relative tooltip-container ${borderClass} ${cursorClass}">
+                                            <span>Average Confidence</span>
+                                            <span class="text-blue-400 font-bold">${confStr}</span>
+                                            ${tooltipHtml}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                    }
+                } catch (err) {
+                    console.error("[loadUserStats] Error updating class frequencies:", err);
+                }
+
+                // Update Trained Model Files
+                const modelsContainer = document.getElementById('modelsList');
+                if (modelsContainer && s.models) {
+                    if (s.models.length === 0) {
+                        modelsContainer.innerHTML = `<div class="text-center py-10 opacity-30 text-[10px] uppercase tracking-wider font-bold">No model files found</div>`;
+                    } else {
+                        const modelColors = [
+                            { border: 'border-blue-500/20', bg: 'bg-blue-500/5', icon: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20', bar: 'from-blue-500 to-cyan-400' },
+                            { border: 'border-emerald-500/20', bg: 'bg-emerald-500/5', icon: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', bar: 'from-emerald-500 to-teal-400' },
+                            { border: 'border-violet-500/20', bg: 'bg-violet-500/5', icon: 'text-violet-400', badge: 'bg-violet-500/10 text-violet-400 border-violet-500/20', bar: 'from-violet-500 to-purple-400' },
+                        ];
+                        modelsContainer.innerHTML = s.models.map((m, i) => {
+                            const c = modelColors[i % modelColors.length];
+                            const statusDot = m.exists
+                                ? `<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] inline-block"></span>`
+                                : `<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>`;
+                            const statusText = m.exists ? 'Active' : 'Not Found';
+                            const sizeStr = m.size_mb !== null ? `${m.size_mb} MB` : '--';
+
+                            const val = s.validation_metrics ? s.validation_metrics[m.key] : null;
+                            let valHtml = '';
+                            if (val) {
+                                valHtml = `
+                                    <div class="grid grid-cols-4 gap-1 text-center text-[7px] font-mono bg-black/30 p-2 rounded-xl border border-white/5 mt-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 uppercase tracking-widest text-[5.5px]">Prec</span>
+                                            <span class="text-blue-400 font-bold">${Math.round(val.precision * 100)}%</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 uppercase tracking-widest text-[5.5px]">Rec</span>
+                                            <span class="text-purple-400 font-bold">${Math.round(val.recall * 100)}%</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 uppercase tracking-widest text-[5.5px]">mAP50</span>
+                                            <span class="text-emerald-400 font-bold">${Math.round(val.map50 * 100)}%</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 uppercase tracking-widest text-[5.5px]">mAP50-95</span>
+                                            <span class="text-amber-400 font-bold">${Math.round(val.map5095 * 100)}%</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
+                            const classPreview = (m.classes || []).slice(0, 4).join(', ') + (m.classes && m.classes.length > 4 ? ` +${m.classes.length - 4} more` : '');
+                            return `
+                                <div class="p-4 rounded-2xl border ${c.border} ${c.bg} flex flex-col gap-3 hover:scale-[1.01] transition-all shadow-lg font-sans">
+                                    <div class="flex items-start justify-between">
+                                        <div class="w-10 h-10 rounded-xl bg-black/30 border ${c.border} flex items-center justify-center shrink-0">
+                                            <i class="fa-solid fa-microchip ${c.icon} text-sm"></i>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg border ${c.badge} text-[8px] font-bold uppercase tracking-widest">
+                                            ${statusDot} ${statusText}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[11px] font-bold text-white font-mono leading-tight break-all">${m.label}</div>
+                                        <div class="text-[9px] text-gray-500 mt-1 uppercase tracking-wider">${m.description}</div>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[9px] text-gray-500 border-t border-white/5 pt-2 mt-auto">
+                                        <span class="font-mono">${m.num_classes} classes</span>
+                                        <span class="font-mono font-bold ${c.icon}">${sizeStr}</span>
+                                    </div>
+                                    ${valHtml}
+                                    <div class="text-[8px] text-gray-600 font-mono leading-relaxed mt-2">${classPreview}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            } catch (e) {
+                userStatsRetryDelay = Math.min(userStatsRetryDelay * 2, 120000);
+                if (statusText) {
+                    statusText.textContent = e.name === 'AbortError' ? 'Stats timed out' : 'Stats unavailable';
+                }
+            } finally {
+                clearTimeout(timeoutId);
+                userStatsInFlight = false;
+            }
+        }
+
+        function toggleActiveDatasetsModal() {
+            const backdrop = document.getElementById('datasetsModalBackdrop');
+            const modal = document.getElementById('datasetsModal');
+            if (modal.classList.contains('hidden')) {
+                backdrop.classList.remove('hidden');
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('scale-95');
+                    modal.classList.add('scale-100');
+                }, 10);
+            } else {
+                modal.classList.remove('scale-100');
+                modal.classList.add('scale-95');
+                setTimeout(() => {
+                    backdrop.classList.add('hidden');
+                    modal.classList.add('hidden');
+                }, 150);
+            }
+        }
+
+        function toggleStatsDashboard() {
+            const container = document.getElementById('statsDashboardContainer');
+            const btn = document.getElementById('btnToggleStats');
+            const workspace = document.querySelector('main');
+            const banner = document.getElementById('draftRestoreBanner');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                btn.classList.add('bg-blue-600', 'text-white');
+                btn.classList.remove('bg-blue-600/10', 'text-blue-400');
+                btn.innerHTML = `<i class="fa-solid fa-xmark"></i> Stats`;
+                if (workspace) workspace.classList.add('hidden');
+                if (banner) banner.classList.add('hidden');
+                container.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                container.classList.add('hidden');
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-blue-600/10', 'text-blue-400');
+                btn.innerHTML = `<i class="fa-solid fa-chart-simple"></i> Stats`;
+                if (workspace) workspace.classList.remove('hidden');
+                const raw = localStorage.getItem('asakta_worker_draft');
+                if (raw && banner) {
+                    banner.classList.remove('hidden');
+                }
+            }
+        }
+
+        window.toggleActiveDatasetsModal = toggleActiveDatasetsModal;
+        window.toggleStatsDashboard = toggleStatsDashboard;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btnToggleStats')?.addEventListener('click', toggleStatsDashboard);
+            document.getElementById('btnActiveDatasets')?.addEventListener('click', toggleActiveDatasetsModal);
+            loadUserStats();
+        });
+        setInterval(() => {
+            if (userStatsRetryDelay <= 30000) loadUserStats();
+        }, 30000);
+        setInterval(() => {
+            if (userStatsRetryDelay > 30000) {
+                userStatsRetryDelay -= 30000;
+                if (userStatsRetryDelay <= 30000) loadUserStats();
+            }
+        }, 30000);
+    </script>
+<script>
+// Demo: Voltage badge updater - hooks into existing fetch/XHR calls
+(function() {
+    const origFetch = window.fetch;
+    window.fetch = function(...args) {
+        return origFetch.apply(this, args).then(response => {
+            const clone = response.clone();
+            const url = typeof args[0] === 'string' ? args[0] : (args[0].url || '');
+            if (url.includes('/predict') || url.includes('/predict_stream')) {
+                clone.json().then(data => {
+                    if (data && data.master && data.master.voltage) {
+                        const badge = document.getElementById('voltage-badge');
+                        const text = document.getElementById('voltage-badge-text');
+                        if (badge && text) {
+                            text.textContent = data.master.voltage;
+                            badge.classList.remove('hidden');
+                            badge.style.display = 'inline-flex';
+                            badge.classList.remove('animate-pulse');
+                            
+                            // Reset colors cleanly
+                            badge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-mono tracking-wide shadow-lg border';
+                            if (data.master.voltage.includes('11KV') || data.master.voltage.includes('HT')) {
+                                badge.classList.add('bg-rose-500/20', 'text-rose-300', 'border-rose-500/30');
+                            } else if (data.master.voltage.includes('LT')) {
+                                badge.classList.add('bg-blue-500/20', 'text-blue-300', 'border-blue-500/30');
+                            } else if (data.master.voltage.includes('DTR')) {
+                                badge.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/30');
+                            } else {
+                                badge.classList.add('bg-yellow-500/20', 'text-yellow-300', 'border-yellow-500/30');
+                            }
+                        }
+                        
+                        // Mobile auto-scroll to results
+                        if (window.innerWidth < 1024) {
+                            setTimeout(() => {
+                                const masterCard = document.getElementById('masterIdentityCard');
+                                if (masterCard) masterCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 300);
+                        }
+                    }
+                }).catch(() => {});
+            }
+            return response;
+        });
+    };
+
+    // Also patch XMLHttpRequest for older code paths
+    const origXHROpen = XMLHttpRequest.prototype.open;
+    const origXHRSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+        this._url = url;
+        return origXHROpen.apply(this, [method, url, ...rest]);
+    };
+    XMLHttpRequest.prototype.send = function(...args) {
+        this.addEventListener('load', function() {
+            if (this._url && (this._url.includes('/predict') || this._url.includes('/predict_stream'))) {
+                try {
+                    const data = JSON.parse(this.responseText);
+                    if (data && data.master && data.master.voltage) {
+                        const badge = document.getElementById('voltage-badge');
+                        const text = document.getElementById('voltage-badge-text');
+                        if (badge && text) {
+                            text.textContent = data.master.voltage;
+                            badge.classList.remove('hidden');
+                            badge.style.display = 'inline-flex';
+                        }
+                    }
+                } catch(e) {}
+            }
+        });
+        return origXHRSend.apply(this, args);
+    };
+})();
+
+// Evaluator Demo Samples Loader
+async function initDemoSamples() {
+    const listEl = document.getElementById('demoSamplesList');
+    if (!listEl) return;
+    try {
+        const resp = await fetch('/api/demo_samples');
+        const data = await resp.json();
+        const images = data.samples || [];
+        const videos = data.videos || [];
+        
+        if (images.length === 0 && videos.length === 0) {
+            listEl.innerHTML = '<span class="text-xs text-gray-500 py-1">No sample files available in static/demo_samples/</span>';
+            return;
+        }
+        
+        listEl.innerHTML = '';
+        
+        // Render Videos first if available
+        videos.forEach((vid, idx) => {
+            const card = document.createElement('div');
+            card.className = 'flex-shrink-0 w-24 p-1.5 rounded-lg bg-gray-800/90 hover:bg-purple-900/40 border border-purple-500/30 hover:border-purple-400 cursor-pointer transition-all group text-center';
+            card.innerHTML = `
+                <div class="w-full h-12 rounded bg-purple-950/70 flex items-center justify-center text-purple-300 group-hover:scale-105 transition-transform mb-1 border border-purple-500/20">
+                    <i class="fa-solid fa-film text-base"></i>
+                </div>
+                <div class="text-[9px] font-bold text-purple-200 truncate">Survey Video</div>
+                <div class="text-[7px] text-purple-400 uppercase font-semibold">1-Click Test</div>
+            `;
+            card.onclick = () => loadDemoVideo(vid.url, vid.filename);
+            listEl.appendChild(card);
+        });
+
+        // Render Images
+        images.forEach((img, idx) => {
+            const card = document.createElement('div');
+            card.className = 'flex-shrink-0 w-20 p-1.5 rounded-lg bg-gray-800/90 hover:bg-blue-900/40 border border-white/10 hover:border-blue-400 cursor-pointer transition-all group text-center';
+            card.innerHTML = `
+                <div class="w-full h-12 rounded bg-black/40 overflow-hidden mb-1 border border-white/5 flex items-center justify-center">
+                    <img src="${img.url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="${img.label}" loading="lazy">
+                </div>
+                <div class="text-[9px] font-bold text-gray-200 truncate">Pole ${idx + 1}</div>
+                <div class="text-[7px] text-emerald-400 uppercase font-semibold">1-Click</div>
+            `;
+            card.onclick = () => loadDemoImage(img.url, img.filename);
+            listEl.appendChild(card);
+        });
+    } catch (e) {
+        console.error("Failed to load demo samples:", e);
+        listEl.innerHTML = '<span class="text-xs text-red-400/80 py-1">Error loading samples</span>';
+    }
+}
+
+async function loadDemoImage(url, filename) {
+    if (typeof showToast === 'function') {
+        showToast(`Loading sample: ${filename}...`, "info");
+    }
+    if (typeof switchInputMode === 'function') {
+        switchInputMode('image');
+    }
+    try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+        
+        // Clean session reset before loading new sample
+        if (typeof resetImageSession === 'function') {
+            resetImageSession(true);
+        } else {
+            batchImages = [];
+            activeBatchIndex = -1;
+            if (typeof clearActiveImageState === 'function') clearActiveImageState();
+        }
+        
+        const uploadInput = document.getElementById('upload');
+        if (uploadInput && typeof handleUpload === 'function') {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            uploadInput.files = dt.files;
+            handleUpload({ target: uploadInput });
+        }
+
+        // Guarantee active selection and preview display
+        setTimeout(() => {
+            if (typeof selectBatchImage === 'function' && typeof batchImages !== 'undefined' && batchImages.length > 0) {
+                selectBatchImage(0);
+            }
+            const runBtn = document.getElementById('btnRun');
+            if (runBtn) {
+                runBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                runBtn.classList.add('ring-4', 'ring-emerald-400', 'animate-pulse');
+                setTimeout(() => runBtn.classList.remove('ring-4', 'ring-emerald-400', 'animate-pulse'), 2500);
+            }
+        }, 150);
+    } catch (err) {
+        console.error("Demo load failed:", err);
+        if (typeof showToast === 'function') showToast("Could not load sample image", "error");
+    }
+}
+
+async function loadDemoVideo(url, filename) {
+    if (typeof showToast === 'function') {
+        showToast(`Loading video: ${filename}...`, "info");
+    }
+    if (typeof switchInputMode === 'function') {
+        switchInputMode('video');
+    }
+    try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const file = new File([blob], filename, { type: blob.type || 'video/mp4' });
+        
+        if (typeof resetVideoSession === 'function') {
+            resetVideoSession(true);
+        }
+        
+        const videoInput = document.getElementById('videoUpload');
+        if (videoInput && typeof handleVideoUpload === 'function') {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            videoInput.files = dt.files;
+            handleVideoUpload({ target: videoInput });
+        }
+        
+        setTimeout(() => {
+            const runBtn = document.getElementById('btnRun');
+            if (runBtn) {
+                runBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                runBtn.classList.add('ring-4', 'ring-purple-400', 'animate-pulse');
+                setTimeout(() => runBtn.classList.remove('ring-4', 'ring-purple-400', 'animate-pulse'), 2500);
+            }
+        }, 150);
+    } catch (err) {
+        console.error("Demo video load failed:", err);
+        if (typeof showToast === 'function') showToast("Could not load sample video", "error");
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDemoSamples();
+});
+</script>
+</body>
+
+</html>

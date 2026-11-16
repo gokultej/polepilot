@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <script src="{{ url_for('static', filename='workspace-security.js') }}" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product_name }} — Review and administration</title>
+    <script>
+        (function() {
+            const _warn = console.warn;
+            console.warn = function() {
+                if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('cdn.tailwindcss.com')) return;
+                _warn.apply(console, arguments);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; }
+        .card { background: #111827; border-radius: 12px; border: 1px solid #1f2937; padding: 1.5rem; }
+        .task-card { background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; display: flex; flex-direction: column; gap: 1rem; }
+        .badge { background: #334155; color: #94a3b8; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .btn-primary { background: #2563eb; padding: 0.5rem 1rem; border-radius: 6px; transition: 0.2s; }
+        .btn-primary:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body class="p-4 md:p-8 space-y-8">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="flex justify-between items-center bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
+            <div>
+                <h1 class="text-3xl font-bold flex items-center gap-3">
+                    <i class="fa-solid fa-user-shield text-blue-500"></i> Admin Dashboard
+                </h1>
+                <p class="text-gray-400">Review and verify detection tasks from all users</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right mr-4 hidden md:block">
+                    <div class="text-sm text-gray-500 uppercase tracking-wider">Logged in as</div>
+                    <div class="font-bold text-blue-400">Administrator</div>
+                </div>
+
+                <a href="/" class="btn-primary flex items-center gap-2 font-bold text-xs"><i class="fa-solid fa-home"></i> User UI</a>
+                <a href="/logout" class="text-red-400 hover:text-red-300 ml-4"><i class="fa-solid fa-right-from-bracket"></i></a>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card flex flex-col items-center justify-center p-8">
+                <div class="text-4xl font-bold text-blue-500" id="statPending">0</div>
+                <div class="text-gray-400 uppercase text-xs mt-2 tracking-widest font-semibold">Pending Review</div>
+            </div>
+            <div class="card flex flex-col items-center justify-center p-8">
+                <div class="text-4xl font-bold text-green-500" id="statApproved">0</div>
+                <div class="text-gray-400 uppercase text-xs mt-2 tracking-widest font-semibold">Approved</div>
+            </div>
+            <div class="card flex flex-col items-center justify-center p-8">
+                <div class="text-4xl font-bold text-red-500" id="statRejected">0</div>
+                <div class="text-gray-400 uppercase text-xs mt-2 tracking-widest font-semibold">Rejected</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- User Management Panel -->
+            <div class="card p-6 border border-blue-500/20 bg-blue-900/5 flex flex-col h-full">
+                <div class="mb-4 border-b border-blue-500/10 pb-2">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-blue-300">
+                        <i class="fa-solid fa-users text-blue-400"></i> User Directory
+                    </h2>
+                </div>
+                <!-- Users list -->
+                <div class="flex-1 overflow-y-auto max-h-[250px] pr-2 space-y-2" id="userDirectoryList">
+                    <div class="text-[10px] text-gray-500 italic text-center py-4">Loading users...</div>
+                </div>
+            </div>
+
+            <!-- Training Pool Panel -->
+            <div class="card p-6 space-y-4 border border-purple-500/20 bg-purple-900/5">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-purple-300">
+                        <i class="fa-solid fa-brain text-purple-400"></i> Active Learning Pool
+                        <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold">LIVE</span>
+                    </h2>
+                    <span class="text-[10px] text-gray-500" id="lastApprovedTime">Loading...</span>
+                </div>
+
+                <div id="activeLearningMetricGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div class="text-[10px] text-purple-300 font-bold uppercase tracking-widest mb-1">TOTAL APPROVED</div>
+                        <div class="text-xl font-bold text-white" id="metricTotalApproved">0</div>
+                    </div>
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div class="text-[10px] text-blue-300 font-bold uppercase tracking-widest mb-1">TOTAL CLASSES</div>
+                        <div class="text-xl font-bold text-white" id="metricTotalClasses">0</div>
+                    </div>
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div class="text-[10px] text-amber-300 font-bold uppercase tracking-widest mb-1">AVG CONFIDENCE</div>
+                        <div class="text-xl font-bold text-white" id="metricAvgConfidence">0.00%</div>
+                    </div>
+                </div>
+
+                <details class="rounded-xl border border-white/5 bg-gray-900/50">
+                    <summary class="cursor-pointer select-none px-3 py-2 text-[9px] text-purple-300 uppercase font-bold tracking-widest flex items-center justify-between">
+                        <span>Active Dataset</span>
+                        <i class="fa-solid fa-chevron-down text-[8px] text-gray-500"></i>
+                    </summary>
+                    <div id="activeDatasetList" class="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div class="text-[9px] text-gray-600 italic">Loading active datasets...</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-list-ul text-blue-400"></i> Submissions Queue
+                        </h2>
+                        <div class="flex items-center gap-3">
+                            <div class="flex gap-2">
+                                <button id="filterBtn-pending" onclick="filterTasks('pending')" class="text-xs bg-blue-900/30 text-blue-300 px-3 py-1 rounded-full border border-blue-500/30 hover:bg-blue-900/50 transition-all">Pending</button>
+                                <button id="filterBtn-approved" onclick="filterTasks('approved')" class="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-transparent hover:bg-gray-700 transition-all">Recent Approved</button>
+                                <button id="filterBtn-rejected" onclick="filterTasks('rejected')" class="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-transparent hover:bg-gray-700 transition-all">Rejected</button>
+                            </div>
+                        </div>
+                    </div>
+
+        <main id="taskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading indicator -->
+            <div class="col-span-full text-center py-20 text-gray-500">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4"></i>
+                <p>Fetching tasks...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- ANNOTATION HISTORY MODAL -->
+    <div id="historyModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeHistoryModal()"></div>
+        <div class="relative z-10 w-full max-w-6xl max-h-[92vh] flex flex-col bg-gray-950 border border-white/10 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-white/5 shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                        <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white font-['Outfit']">Logs</h2>
+                        <p id="historySubtitle" class="text-[10px] text-gray-500 font-mono"></p>
+                    </div>
+                </div>
+                <button onclick="closeHistoryModal()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all text-lg">&times;</button>
+            </div>
+            <div class="flex flex-col lg:flex-row overflow-hidden flex-1 min-h-0">
+                <div class="lg:w-[58%] p-5 overflow-y-auto border-r border-white/5">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-3">Annotated Frames</p>
+                    <div id="historyImageGallery" class="space-y-4"><div class="text-[10px] text-gray-600 italic">Loading...</div></div>
+                </div>
+                <div class="lg:w-[42%] p-5 overflow-y-auto">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-4">Activity Timeline</p>
+                    <div id="historyTimeline" class="relative"><div class="text-[10px] text-gray-600 italic">Loading...</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-5xl w-full p-6 relative overflow-hidden flex flex-col md:flex-row gap-8">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-3xl transition-colors">&times;</button>
+            
+            <div class="flex-1 min-h-[300px] flex items-center justify-center bg-black rounded-lg overflow-hidden border border-gray-800 relative">
+                <img id="modalImg" class="max-w-full max-h-[70vh] object-contain">
+                <svg id="modalOverlay" class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+
+            <div class="w-full md:w-96 flex flex-col">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-bold text-white mb-1">Task Analysis</h3>
+                    <p id="modalUserIn" class="text-gray-400 text-sm font-mono"></p>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto mb-6 pr-2">
+                    <div id="modalSummary" class="p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl mb-4">
+                        <p id="modalMainClass" class="text-white font-bold text-sm">--</p>
+                        <p id="modalMainVolt" class="text-blue-400 text-[10px] font-bold">--</p>
+                        <p id="modalMainReason" class="text-gray-500 text-[10px] italic mt-1 leading-tight">--</p>
+                    </div>
+
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 block">Detected Objects</label>
+                    <div id="modalDetections" class="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                        <!-- Labels -->
+                    </div>
+
+                        <div class="mt-4 pt-4 border-t border-gray-800 space-y-2">
+                            <p class="text-[9px] text-gray-600 font-bold uppercase tracking-widest">Database Pathway</p>
+                            <a id="modalPathwayLink" href="#" target="_blank" class="w-full px-2 py-2 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 text-[9px] font-bold uppercase rounded-lg border border-blue-500/20 flex items-center justify-center gap-2 transition-all">
+                                <i class="fa-solid fa-database"></i> Open Decoupled Results
+                            </a>
+                        </div>
+                    </div>
+
+                <div class="space-y-3 pt-6 border-t border-gray-800">
+                    <button id="btnApprove" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> APPROVE SUBMISSION
+                    </button>
+                    <button id="btnReject" class="w-full bg-red-600/20 hover:bg-red-600 border border-red-600/30 text-red-400 hover:text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-xmark"></i> REJECT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let currentFilter = 'pending';
+        let allTasksCached = [];
+        let expandedAdminGroups = new Set();
+
+        const DEFAULT_ASSET_PLACEHOLDER = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='100%25' height='100%25' fill='%23111827'/%3E%3Cg stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke-width='4'/%3E%3Cline x1='140' y1='90' x2='260' y2='90'/%3E%3Cline x1='155' y1='130' x2='245' y2='130'/%3E%3Cline x1='165' y1='170' x2='235' y2='170'/%3E%3Ccircle cx='140' cy='90' r='5' fill='%233b82f6' stroke='%231d4ed8'/%3E%3Ccircle cx='260' cy='90' r='5' fill='%233b82f6' stroke='%231d4ed8'/%3E%3Ccircle cx='200' cy='50' r='5' fill='%233b82f6' stroke='%231d4ed8'/%3E%3C/g%3E%3Ctext x='50%25' y='85%25' font-family='ui-sans-serif, system-ui, sans-serif' font-size='11' font-weight='700' letter-spacing='1.5' fill='%236B7280' text-anchor='middle'%3ENO ASSET IMAGE%3C/text%3E%3C/svg%3E";
+
+        // Helper to format B64 strings correctly and prevent double-prefixing
+        function formatB64(src) {
+            if (!src || src === 'None' || src === 'null' || src.length < 5) {
+                return DEFAULT_ASSET_PLACEHOLDER;
+            }
+
+            let cleaned = src.toString().trim();
+            const prefixPatterns = [
+                /^data:image\/[a-z]+;base64,/,
+                /base64,/g,
+                /^data:base64,/,
+                /data:image\/jpeg;base64,/g
+            ];
+
+            let changed = true;
+            while (changed) {
+                const before = cleaned;
+                prefixPatterns.forEach((pattern) => {
+                    cleaned = cleaned.replace(pattern, '');
+                });
+                changed = before !== cleaned;
+            }
+
+            cleaned = cleaned.trim().replace(/\s/g, '');
+            if (cleaned.startsWith('http')) return cleaned;
+            return 'data:image/jpeg;base64,' + cleaned;
+        }
+
+        class DashboardStateStore {
+            constructor() {
+                this.state = {
+                    assets: [],
+                    pendingCount: 0,
+                    approvedCount: 0,
+                    rejectedCount: 0,
+                    approvedClassesCount: 0,
+                    approvedAvgConfidence: 0.0,
+                    classBreakdown: {}
+                };
+                this.observers = [];
+            }
+
+            subscribe(fn) {
+                this.observers.push(fn);
+                fn(this.state);
+            }
+
+            notify() {
+                this.observers.forEach(fn => fn(this.state));
+            }
+
+            setAssets(assets) {
+                this.state.assets = assets;
+                this.recalculate();
+            }
+
+            recalculate() {
+                const assets = this.state.assets;
+                
+                this.state.pendingCount = assets.filter(t => t.status === 'pending').length;
+                this.state.approvedCount = assets.filter(t => t.status === 'approved').length;
+                this.state.rejectedCount = assets.filter(t => t.status === 'rejected').length;
+
+                const approvedTasks = assets.filter(t => t.status === 'approved');
+                
+                const classes = new Set();
+                let totalConfidence = 0;
+                let totalDetectionsCount = 0;
+                const classBreakdown = {};
+
+                approvedTasks.forEach(task => {
+                    const detections = task.detections || [];
+                    detections.forEach(det => {
+                        if (det.label) {
+                            const label = det.label.toUpperCase().trim();
+                            const conf = typeof det.confidence === 'number' ? det.confidence : parseFloat(det.confidence) || 0;
+                            
+                            classes.add(label);
+                            
+                            if (!classBreakdown[label]) {
+                                classBreakdown[label] = { count: 0, totalConfidence: 0 };
+                            }
+                            classBreakdown[label].count += 1;
+                            classBreakdown[label].totalConfidence += conf;
+                            
+                            totalConfidence += conf;
+                            totalDetectionsCount += 1;
+                        }
+                    });
+                });
+
+                this.state.approvedClassesCount = classes.size;
+                this.state.approvedAvgConfidence = totalDetectionsCount > 0 ? (totalConfidence / totalDetectionsCount) : 0.0;
+                this.state.classBreakdown = classBreakdown;
+
+                this.notify();
+            }
+        }
+
+        const dashboardStore = new DashboardStateStore();
+
+        // Subscribe elements to store changes
+        dashboardStore.subscribe(state => {
+            // Update global dashboard summary cards
+            const pendingEl = document.getElementById('statPending');
+            const approvedEl = document.getElementById('statApproved');
+            const rejectedEl = document.getElementById('statRejected');
+            if (pendingEl) pendingEl.textContent = state.pendingCount;
+            if (approvedEl) approvedEl.textContent = state.approvedCount;
+            if (rejectedEl) rejectedEl.textContent = state.rejectedCount;
+
+            // Update Active Learning Pool dense metrics grid
+            const grid = document.getElementById('activeLearningMetricGrid');
+            if (!grid) return;
+
+            const formattedAvgConf = (state.approvedAvgConfidence * 100).toFixed(2) + '%';
+
+            let html = `
+                <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                    <div class="text-[10px] text-purple-300 font-bold uppercase tracking-widest mb-1">TOTAL APPROVED</div>
+                    <div class="text-xl font-bold text-white">${state.approvedCount}</div>
+                </div>
+                <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                    <div class="text-[10px] text-blue-300 font-bold uppercase tracking-widest mb-1">TOTAL CLASSES</div>
+                    <div class="text-xl font-bold text-white">${state.approvedClassesCount}</div>
+                </div>
+                <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                    <div class="text-[10px] text-amber-300 font-bold uppercase tracking-widest mb-1">AVG CONFIDENCE</div>
+                    <div class="text-xl font-bold text-white">${formattedAvgConf}</div>
+                </div>
+            `;
+
+            // Append per-class metrics
+            Object.entries(state.classBreakdown).forEach(([cls, data]) => {
+                const avgConf = data.count > 0 ? (data.totalConfidence / data.count) : 0.0;
+                const formattedConf = (avgConf * 100).toFixed(2) + '%';
+                html += `
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div class="text-[10px] text-purple-300 font-bold uppercase tracking-widest mb-1">${cls}</div>
+                        <div class="text-xl font-bold text-white">${data.count}</div>
+                        <div class="text-xs text-gray-500 font-mono mt-1">${formattedConf}</div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        });
+
+        async function updateStats() {
+            const allRes = await fetch('/api/get_assets');
+            allTasksCached = await allRes.json();
+            dashboardStore.setAssets(allTasksCached);
+        }
+
+        function renderTaskList(tasks) {
+            const list = document.getElementById('taskList');
+            if (tasks.length === 0) {
+                list.innerHTML = `<div class="col-span-full text-center py-20 bg-gray-900/50 rounded-xl border border-dashed border-gray-800">
+                    <i class="fa-solid fa-folder-open text-4xl mb-4 opacity-20"></i>
+                    <p class="text-xl font-light opacity-50">No ${currentFilter} tasks found</p>
+                </div>`;
+                return;
+            }
+
+            // Show latest submitted first (Timestamp DESC)
+            const displayTasks = [...tasks].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    
+            list.innerHTML = displayTasks.map(task => `
+                <div class="task-card group hover:border-blue-500 transition-all relative">
+                    <!-- Delete Button -->
+                    <button onclick="event.stopPropagation(); deleteAsset('${task.id}')" 
+                        class="absolute -top-2 -right-2 w-7 h-7 bg-gray-900 border border-white/10 text-gray-500 hover:text-rose-500 hover:border-rose-500/30 rounded-full flex items-center justify-center transition-all z-10 opacity-0 group-hover:opacity-100 shadow-xl">
+                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+
+                    <a href="/admin/asset/${task.id}" class="block">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-mono mb-0.5">ID: ${task.id.split('-')[0]}</p>
+                                <h4 class="font-bold text-white group-hover:text-blue-400 transition-colors leading-tight">${task.worker_name}</h4>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] font-bold text-blue-400 uppercase tracking-widest">${task.asset_class || 'PENDING'}</span>
+                                    <span class="text-[9px] text-gray-600 font-mono">${task.voltage || '--'}</span>
+                                </div>
+                            </div>
+                            <span class="badge ${task.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-500/30' : task.status === 'approved' ? 'bg-emerald-900/20 text-emerald-500 border-emerald-500/30' : 'bg-rose-900/20 text-rose-500 border-rose-500/30'} text-[10px] px-2 py-0.5 border rounded-full font-bold uppercase tracking-widest">${task.status}</span>
+                        </div>
+                        <div class="aspect-[4/3] bg-gray-800 rounded-xl overflow-hidden mb-3 border border-white/5 relative group-hover:border-blue-500/50 transition-all">
+                            <img src="${formatB64(task.thumbnail)}" onerror="this.onerror=null; this.src=DEFAULT_ASSET_PLACEHOLDER;" alt="${task.asset_class || 'Asset'}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>
+                    </a>
+                    <div class="mt-3">
+                        <button onclick="event.stopPropagation(); openHistory('${task.id}', '${task.worker_name}')" 
+                            class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Logs
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadTasks() {
+            const res = await fetch(`/api/get_assets?status=${currentFilter}`);
+            const tasks = await res.json();
+            renderTaskList(tasks);
+        }
+
+        async function openReview(taskId) {
+            const task = allTasksCached.find(t => t.id === taskId);
+            if (!task) return;
+
+            currentTaskId = taskId;
+            const img = document.getElementById('modalImg');
+            img.src = formatB64(task.thumbnail);
+            document.getElementById('modalUserIn').textContent = `ID: ${task.id.split('-')[0]} | SUBMITTED BY: ${task.worker_name}`;
+            
+            // Set Summary Details
+            document.getElementById('modalMainClass').textContent = (task.asset_class || 'PENDING').toUpperCase();
+            document.getElementById('modalMainVolt').textContent = task.voltage || 'VOLLTAGE TBD';
+            document.getElementById('modalMainReason').textContent = task.reason || 'Deep analysis pending...';
+
+            // Set Download Links
+            document.getElementById('modalPathwayLink').href = `/view_pathway/${task.image_db_id}`;
+            
+            // Draw Overlay
+            renderAdminOverlay(task);
+
+            renderAdminDetections(task);
+
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            document.getElementById('btnApprove').onclick = () => updateStatus('approved');
+            document.getElementById('btnReject').onclick = () => updateStatus('rejected');
+
+            // Toggle visibility of buttons based on status
+            const btnGroup = document.getElementById('btnApprove').parentElement;
+            if (task.status !== 'pending') {
+                 btnGroup.classList.add('hidden');
+            } else {
+                 btnGroup.classList.remove('hidden');
+            }
+        }
+
+        function renderAdminOverlay(task) {
+            const img = document.getElementById('modalImg');
+            const svg = document.getElementById('modalOverlay');
+            svg.innerHTML = '';
+            
+            const draw = () => {
+                svg.setAttribute("viewBox", `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+                const dets = task.detections || [];
+                const colors = { INSULATOR: '#f59e0b', POLE: '#8b5cf6', CONDUCTOR: '#06b6d4', CROSSARM: '#10b981' };
+                
+                svg.innerHTML = dets.map((d, i) => {
+                    const [x1, y1, x2, y2] = d.bbox || [0,0,0,0];
+                    const col = colors[d.label?.toUpperCase()] || '#3b82f6';
+                    const lbl = (d.label || 'OBJ').toUpperCase();
+                    const isConfirmed = d.confirmed !== false;
+                    return `
+                        <rect id="admin-box-${i}" x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" 
+                              stroke="${col}" stroke-width="4" fill="${col}${isConfirmed ? '22' : '05'}" rx="4"
+                              style="${isConfirmed ? '' : 'stroke-dasharray: 8 4; opacity: 0.5;'}"/>
+                        <rect x="${x1}" y="${y1-30}" width="${lbl.length*14+14}" height="28" fill="${col}" rx="4" style="${isConfirmed ? '' : 'opacity: 0.5;'}"/>
+                        <text x="${x1+6}" y="${y1-9}" font-size="18" font-family="Inter" font-weight="700" fill="white" style="${isConfirmed ? '' : 'opacity: 0.7;'}">${lbl}</text>
+                    `;
+                }).join('');
+            };
+
+            if (img.complete) draw();
+            else img.onload = draw;
+        }
+
+        function renderAdminDetections(task) {
+            const detBox = document.getElementById('modalDetections');
+            detBox.innerHTML = '';
+            
+            const dets = task.detections || [];
+            if (dets.length === 0) {
+                detBox.innerHTML = '<p class="text-[10px] text-gray-600 italic">No automated detections found.</p>';
+                return;
+            }
+
+            // Grouping
+            const groups = {};
+            dets.forEach((d, i) => {
+                const lbl = (d.label || 'OBJECT').toUpperCase();
+                if (!groups[lbl]) groups[lbl] = [];
+                groups[lbl].push({ ...d, originalIndex: i });
+            });
+
+            const colors = { INSULATOR: '#f59e0b', POLE: '#8b5cf6', CONDUCTOR: '#06b6d4', CROSSARM: '#10b981' };
+
+            for (const label in groups) {
+                const items = groups[label];
+                const col = colors[label] || '#3b82f6';
+                const allConfirmed = items.every(it => it.confirmed !== false);
+                const isExpanded = expandedAdminGroups.has(label);
+
+                const groupEl = document.createElement('div');
+                groupEl.className = "mb-2 border border-gray-800 rounded-lg overflow-hidden bg-gray-900/50";
+                
+                groupEl.innerHTML = `
+                    <div class="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-800 transition-colors" onclick="toggleAdminGroup('${label}')">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} text-[8px] text-gray-600"></i>
+                            <span class="text-[10px] font-bold" style="color: ${col}">${label}S</span>
+                            <span class="text-[8px] bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded-full font-mono">${items.length}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="event.stopPropagation(); bulkAdminConfirm('${label}', ${!allConfirmed})" 
+                                    class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all border ${allConfirmed ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-white/5 text-gray-500 border-white/10 hover:text-white'}">
+                                <i class="fa-solid ${allConfirmed ? 'fa-check-double' : 'fa-check'}"></i> ${allConfirmed ? 'ALL OK' : 'CHECK ALL'}
+                            </button>
+                        </div>
+                    </div>
+                    <div id="admin-group-${label}" class="${isExpanded ? '' : 'hidden'} p-1 space-y-1 bg-black/20 border-t border-gray-800/50">
+                        ${items.map(it => {
+                            const i = it.originalIndex;
+                            const isConfirmed = it.confirmed !== false;
+                            return `
+                                <div class="flex justify-between items-center text-[9px] p-2 ${isConfirmed ? 'bg-gray-800/50' : 'bg-rose-500/5 opacity-60'} rounded border ${isConfirmed ? 'border-gray-700/50' : 'border-rose-500/20'}">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1 h-1 rounded-full" style="background: ${col}"></div>
+                                        <span class="font-bold text-gray-400 uppercase">${label} #${i+1}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="toggleAdminConfirm(${i})" class="w-6 h-6 flex items-center justify-center rounded ${isConfirmed ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-500 border border-white/5'}">
+                                            <i class="fa-solid ${isConfirmed ? 'fa-check' : 'fa-xmark'}"></i>
+                                        </button>
+                                        <button onclick="removeAdminDetection(${i})" class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-rose-500">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                detBox.appendChild(groupEl);
+            }
+        }
+
+        function toggleAdminGroup(label) {
+            if (expandedAdminGroups.has(label)) expandedAdminGroups.delete(label);
+            else expandedAdminGroups.add(label);
+            const task = allTasksCached.find(t => t.id === currentTaskId);
+            renderAdminDetections(task);
+        }
+
+        function toggleAdminConfirm(detIdx) {
+            const task = allTasksCached.find(t => t.id === currentTaskId);
+            if (!task) return;
+            task.detections[detIdx].confirmed = !(task.detections[detIdx].confirmed !== false);
+            renderAdminDetections(task);
+            renderAdminOverlay(task);
+        }
+
+        function bulkAdminConfirm(label, state) {
+            const task = allTasksCached.find(t => t.id === currentTaskId);
+            if (!task) return;
+            task.detections.forEach(d => {
+                if ((d.label || '').toUpperCase() === label) {
+                    d.confirmed = state;
+                }
+            });
+            renderAdminDetections(task);
+            renderAdminOverlay(task);
+        }
+
+        function removeAdminDetection(detIdx) {
+            const task = allTasksCached.find(t => t.id === currentTaskId);
+            if (!task) return;
+            if (confirm('Remove this detection?')) {
+                task.detections.splice(detIdx, 1);
+                renderAdminDetections(task);
+                renderAdminOverlay(task);
+            }
+        }
+
+        async function updateStatus(status) {
+            if (!currentTaskId) return;
+
+            const task = allTasksCached.find(t => t.id === currentTaskId);
+
+            // INSTANT CLIENT-SIDE REACTIVE UPDATE
+            if (task) {
+                task.status = status;
+                dashboardStore.setAssets(allTasksCached);
+                closeModal();
+                renderTaskList(allTasksCached.filter(t => t.status === currentFilter));
+            }
+
+            // ASYNC BACKGROUND SYNC
+            // If approving, first save any detection changes (checks/removals)
+            if (status === 'approved' && task) {
+                fetch('/api/update_asset_detections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        asset_id: currentTaskId, 
+                        updates: [{ index: 0, detections: task.detections }] // Assuming first image for now
+                    })
+                }).catch(e => console.warn("Failed to save detection updates", e));
+            }
+
+            fetch('/api/update_asset_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ asset_id: currentTaskId, status: status })
+            }).then(() => {
+                // Background refresh to ensure sync (optional)
+                // updateStats();
+            }).catch(e => console.warn("Failed to update status on server", e));
+        }
+
+
+
+        function filterTasks(status) {
+            currentFilter = status;
+            
+            // Update Tab UI
+            ['pending', 'approved', 'rejected'].forEach(s => {
+                const btn = document.getElementById('filterBtn-' + s);
+                if (!btn) return;
+                if (s === status) {
+                    btn.className = "text-xs bg-blue-900/30 text-blue-300 px-3 py-1 rounded-full border border-blue-500/30 hover:bg-blue-900/50 transition-all";
+                } else {
+                    btn.className = "text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-transparent hover:bg-gray-700 transition-all";
+                }
+            });
+
+            loadTasks();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // ── Annotation History Modal ─────────────────────────
+        const HCOLORS = { INSULATOR:'#f59e0b', POLE:'#8b5cf6', CONDUCTOR:'#06b6d4', CROSSARM:'#10b981', STREET_LIGHT:'#f97316', DTR:'#a78bfa', OBJECT:'#ec4899' };
+        const ACTION_META = {
+            'asset_submitted':        { icon:'fa-cloud-arrow-up',  color:'text-blue-400',    label:'Submitted' },
+            'asset_status_update':    { icon:'fa-flag',            color:'text-amber-400',   label:'Status Changed' },
+            'asset_annotation_edit':  { icon:'fa-pen',             color:'text-purple-400',  label:'Annotations Edited' },
+            'training_data_exported': { icon:'fa-brain',           color:'text-emerald-400', label:'Training Export' },
+        };
+
+        function formatLogTimestamp(ts) {
+            if (!ts) return '';
+            const parts = ts.split(' ');
+            if (parts.length < 2) return ts;
+            const datePart = parts[0];
+            const timePart = parts[1];
+            
+            const timeSubparts = timePart.split(':');
+            if (timeSubparts.length < 3) return ts;
+            let hours = parseInt(timeSubparts[0], 10);
+            const minutes = timeSubparts[1];
+            const seconds = timeSubparts[2];
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const formattedHours = hours < 10 ? '0' + hours : hours;
+            
+            const formattedTime = `${formattedHours}:${minutes}:${seconds} ${ampm}`;
+            return `<span class="block text-[8px] text-gray-500 font-mono mt-0.5">${datePart} at ${formattedTime}</span>`;
+        }
+
+        async function openHistory(assetId, workerName) {
+            const modal = document.getElementById('historyModal');
+            document.getElementById('historySubtitle').textContent = 'Worker: ' + workerName + '  ·  ' + assetId.split('-')[0] + '...';
+            document.getElementById('historyImageGallery').innerHTML = '<div class="text-[10px] text-gray-600 italic">Loading frames...</div>';
+            document.getElementById('historyTimeline').innerHTML = '<div class="text-[10px] text-gray-600 italic">Loading logs...</div>';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            try {
+                const res = await fetch('/api/get_asset_history/' + assetId);
+                const data = await res.json();
+
+                // Render Annotated Images
+                const gallery = document.getElementById('historyImageGallery');
+                const imgs = data.images || [];
+                if (imgs.length === 0) {
+                    gallery.innerHTML = '<div class="text-[10px] text-gray-600 italic">No frames found.</div>';
+                } else {
+                    gallery.innerHTML = imgs.map((img, idx) => {
+                        const dets = img.detections || [];
+                        const classGroups = {};
+                        dets.forEach(d => { const l = (d.label||'OBJ').toUpperCase(); classGroups[l] = (classGroups[l]||0)+1; });
+                        const pills = Object.entries(classGroups).map(([l,c]) => {
+                            const col = HCOLORS[l] || '#a8a29e';
+                            return '<span style="color:'+col+';border-color:'+col+'40;background:'+col+'15" class="text-[8px] font-bold px-2 py-0.5 rounded-full border">'+l+' x'+c+'</span>';
+                        }).join('');
+                        const boxes = dets.map(d => {
+                            if (!d.bbox || d.bbox.length < 4) return '';
+                            const [x1,y1,x2,y2] = d.bbox;
+                            const col = HCOLORS[(d.label||'').toUpperCase()] || '#a8a29e';
+                            const lbl = (d.label||'OBJ').toUpperCase();
+                            return '<rect x="'+x1+'" y="'+y1+'" width="'+(x2-x1)+'" height="'+(y2-y1)+'" fill="'+col+'20" stroke="'+col+'" stroke-width="3" rx="3"/>'+
+                                   '<rect x="'+x1+'" y="'+(y1-26)+'" width="'+(lbl.length*11+12)+'" height="22" fill="'+col+'44" rx="4"/>'+
+                                   '<text x="'+(x1+6)+'" y="'+(y1-9)+'" font-size="16" font-family="Inter" font-weight="700" fill="'+col+'">'+lbl+'</text>';
+                        }).join('');
+                        return '<div class="rounded-2xl overflow-hidden border border-white/5 bg-gray-900/60">'+
+                               '<div class="relative bg-black">'+
+                               '<img src="'+formatB64(img.image_b64)+'" onerror="this.onerror=null; this.src=DEFAULT_ASSET_PLACEHOLDER;" loading="lazy" class="w-full h-auto block" style="max-height:400px;object-fit:contain;" '+
+                               'onload="this.nextElementSibling.setAttribute(\'viewBox\', \'0 0 \' + this.naturalWidth + \' \' + this.naturalHeight)">'+
+                               '<svg class="absolute inset-0 w-full h-full" style="pointer-events:none" preserveAspectRatio="xMidYMid meet">'+boxes+'</svg>'+
+                               '</div>'+
+                               '<div class="p-3 flex items-center justify-between flex-wrap gap-2">'+
+                               '<span class="text-[9px] text-gray-500 font-bold uppercase">Frame '+(idx+1)+'</span>'+
+                               '<div class="flex flex-wrap gap-1">'+(pills||'<span class="text-[8px] text-gray-700">No detections</span>')+'</div>'+
+                               '<span class="text-[9px] font-mono text-gray-600">'+dets.length+' boxes</span></div></div>';
+                    }).join('');
+                }
+
+                // Render Timeline
+                const timeline = document.getElementById('historyTimeline');
+                const logs = data.logs || [];
+                const submitEntry = { action:'asset_submitted', user_name: data.worker_name, timestamp: data.submitted_at, details: 'Initial submission by field worker' };
+                const allEvents = [submitEntry, ...logs];
+
+                timeline.innerHTML = '<div class="absolute left-4 top-0 bottom-0 w-px bg-white/5"></div><div class="space-y-3 pl-9">' +
+                    allEvents.map((ev, i) => {
+                        const meta = ACTION_META[ev.action] || { icon:'fa-circle-dot', color:'text-gray-400', label: (ev.action||'').replace(/_/g,' ') };
+                        const isFirst = i === 0;
+                        const isLast = i === allEvents.length - 1;
+                        return '<div class="relative">'+
+                               '<div class="absolute -left-9 top-1.5 w-5 h-5 rounded-full bg-gray-900 border-2 '+(isFirst?'border-blue-500':isLast?'border-purple-500':'border-gray-700')+' flex items-center justify-center">'+
+                               '<i class="fa-solid '+meta.icon+' '+meta.color+' text-[6px]"></i></div>'+
+                               '<div class="p-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl transition-all">'+
+                               '<div class="flex flex-col gap-0.5 mb-1">'+
+                               '<div class="flex justify-between items-center w-full">'+
+                               '<span class="text-[9px] font-bold '+meta.color+' uppercase tracking-wider">'+meta.label+'</span>'+
+                               '</div>'+
+                               formatLogTimestamp(ev.timestamp)+
+                               '</div>'+
+                               '<p class="text-[9px] text-gray-400"><i class="fa-solid fa-user text-[7px] mr-1"></i>'+(ev.user_name||'System')+'</p>'+
+                               (ev.details ? '<p class="text-[8px] text-gray-600 leading-relaxed border-t border-white/5 pt-1 mt-1">'+ev.details.replace(/\|/g,' · ')+'</p>' : '')+
+                               '</div></div>';
+                    }).join('') + '</div>';
+
+            } catch(e) {
+                document.getElementById('historyImageGallery').innerHTML = '<div class="text-[10px] text-rose-400">Failed to load history.</div>';
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+        }
+
+        async function deleteAsset(assetId) {
+            if (!confirm('PERMANENTLY DELETE this entire asset and all its images? \n\nThis action cannot be undone and is for cleanup purposes.')) return;
+            
+            try {
+                const res = await fetch(`/api/delete_asset/${assetId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    // Refresh current view
+                    loadTasks();
+                    updateStats();
+                } else {
+                    alert('Delete failed: ' + (data.message || 'Error'));
+                }
+            } catch(e) {
+                alert('Network error while deleting asset.');
+            }
+        }
+
+        // ── Training Pool Panel ──────────────────────────────────────────────
+        const CLASS_COLORS_TRAIN = {
+            POLE: '#8b5cf6', INSULATOR: '#f59e0b', CONDUCTOR: '#06b6d4',
+            CROSSARM: '#10b981', STREET_LIGHT: '#f97316', DTR: '#a78bfa', OBJECT: '#ec4899'
+        };
+
+        function getTrainClassCategory(cls) {
+            const name = cls.toUpperCase();
+            if (name.includes('INSULATOR')) return 'INSULATOR';
+            if (name.includes('POLE')) return 'POLE';
+            if (name.includes('CONDUCTOR') || name.includes('WIRE') || name.includes('LINE') || name.includes('CLEAT')) return 'CONDUCTOR';
+            if (name.includes('ARM') || name.includes('CROSS') || name.includes('CHANNEL') || name.includes('RISING')) return 'CROSSARM';
+            if (name.includes('LIGHT') || name.includes('LAMP')) return 'STREET_LIGHT';
+            if (name.includes('DTR') || name.includes('TRANSFORMER') || name.includes('SWITCH')) return 'DTR';
+            return 'OBJECT';
+        }
+
+        async function loadTrainingStats() {
+            try {
+                const res = await fetch('/api/training_stats');
+                if (!res.ok) return;
+                const s = await res.json();
+                const activeDatasetList = document.getElementById('activeDatasetList');
+                if (activeDatasetList) {
+                    activeDatasetList.innerHTML = (s.datasets || []).map(ds => `
+                        <div class="p-2 rounded-lg border border-white/5 bg-black/20">
+                            <div class="text-[9px] text-white font-bold truncate">${ds.name}</div>
+                            <div class="text-[8px] text-gray-500 uppercase font-bold tracking-widest mt-1">${ds.images || 0} images</div>
+                            <div class="text-[8px] text-gray-600">${ds.annotations || 0} objects identified</div>
+                        </div>
+                    `).join('') || '<div class="text-[9px] text-gray-600 italic">No active datasets found.</div>';
+                }
+
+                const lastApprovedEl = document.getElementById('lastApprovedTime');
+                if (lastApprovedEl) {
+                    lastApprovedEl.textContent = s.last_approved ? `Last: ${s.last_approved}` : 'No samples yet';
+                }
+            } catch(e) {
+                console.warn('Training stats unavailable.', e);
+            }
+        }
+
+        // ── User Management ────────────────────────────────────────────────
+        async function loadUsers() {
+            const list = document.getElementById('userDirectoryList');
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                if (users.length === 0) {
+                    list.innerHTML = '<div class="text-[10px] text-gray-500 text-center py-4">No users found.</div>';
+                    return;
+                }
+                list.innerHTML = users.map(u => `
+                    <div class="flex items-center justify-between p-3 bg-gray-900/50 rounded-xl border border-white/5 hover:border-blue-500/30 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs uppercase border border-blue-500/30">
+                                ${u.username.substring(0,2)}
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-white">${u.username}</p>
+                                <p class="text-[9px] font-mono uppercase tracking-wider ${u.role === 'admin' ? 'text-rose-400' : 'text-blue-400'}">${u.role}</p>
+                            </div>
+                        </div>
+                        ${u.role !== 'admin' ? `
+                            <button onclick="deleteUser('${u.username}')" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 transition-all flex items-center justify-center" title="Revoke Access">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch(e) {
+                 list.innerHTML = '<div class="text-[10px] text-rose-400 text-center py-4">Failed to load users</div>';
+            }
+        }
+
+        async function deleteUser(username) {
+            if(!confirm(`WARNING: Are you sure you want to completely revoke access for user '${username}'?`)) return;
+            try {
+                const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    loadUsers();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch(e) {
+                alert('Connection error while trying to delete user');
+            }
+        }
+
+        // Initialize
+        updateStats();
+        loadTasks();
+        loadTrainingStats();
+        loadUsers();
+
+        const detailsEl = document.querySelector('details');
+        if (detailsEl) {
+            detailsEl.addEventListener('toggle', (e) => {
+                const icon = e.target.querySelector('summary i');
+                if (icon) {
+                    if (e.target.open) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                }
+            });
+        }
+        setInterval(() => {
+            updateStats();
+            loadTasks();
+            loadTrainingStats();
+        }, 30000); // Refresh every 30s
+
+    </script>
+</body>
+</html>

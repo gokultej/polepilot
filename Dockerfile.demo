@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+WORKDIR /app
+RUN useradd --uid 10001 --create-home polepilot \
+    && mkdir /data && chown polepilot:polepilot /data
+COPY requirements-demo.txt .
+RUN pip install -r requirements-demo.txt
+COPY --chown=polepilot:polepilot app.py config.py ./
+COPY --chown=polepilot:polepilot evaluation ./evaluation
+COPY --chown=polepilot:polepilot templates/showcase.html templates/evaluation.html ./templates/
+COPY --chown=polepilot:polepilot static/evaluation.css static/evaluation.js static/demo_poles.geojson static/model_evaluation.json ./static/
+COPY --chown=polepilot:polepilot static/vendor ./static/vendor
+COPY --chown=polepilot:polepilot static/demo_samples ./static/demo_samples
+USER polepilot
+EXPOSE 8000
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "--timeout", "30", "--access-logfile", "-", "app:app"]

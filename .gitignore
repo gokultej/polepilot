@@ -1,0 +1,27 @@
+# Runtime data and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.db
+*.sqlite*
+.data/
+uploads/
+training_data/
+# Local builds and caches
+.build/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.log
+*.tar.gz
+*.zip
+.vscode/
+# Model binaries are supplied separately
+*.pt
+*.pth
+*.onnx

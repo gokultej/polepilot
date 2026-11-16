@@ -1,0 +1,78 @@
+{% macro asset_map() -%}
+    <section class="asset-map-section" id="asset-map-section" aria-labelledby="map-heading">
+      <div class="map-intro">
+        <p class="eyebrow"><span class="status-dot"></span> YOUR SESSION / ASSET LOCATIONS</p>
+        {% if map_mode %}<h1 id="map-heading">Asset map.</h1>{% else %}<h2 id="map-heading">Put the inspection<br>on the map.</h2>{% endif %}
+        <p>{% if map_mode %}Explore a fictional Vijayawada–Guntur survey, or map your own inspection using verified GPS coordinates.{% else %}Run an inspection, enter verified GPS coordinates in the <strong>Review</strong> tab and save. You can also explore the labeled fictional Andhra Pradesh sample layer.{% endif %}</p>
+        <p class="map-disclosure">OpenStreetMap tiles load when this map is in view. Tile requests contact an external service.</p>
+        <div class="map-actions"><a href="#inspection-workspace" class="button button-dark button-small">Add your own pole <span aria-hidden="true">↓</span></a><a id="export-geojson" href="/api/evaluation/assets.geojson" download="polepilot-assets.geojson" class="text-link">Export your locations ↓</a><button id="load-map" type="button" class="button button-outline button-small" hidden>Retry map ↻</button></div>
+        <label class="demo-layer-toggle"><input id="show-demo-poles" type="checkbox" {% if map_mode %}checked{% endif %}> Show demo poles <span>fictional AP survey</span></label>
+        <div class="map-legend" aria-label="Map marker legend"><span><i class="legend-demo-reviewed" aria-hidden="true"></i>Demo reviewed</span><span><i class="legend-pending" aria-hidden="true"></i>Needs review</span><span><i class="legend-planned" aria-hidden="true"></i>Planned</span><span><i class="legend-own" aria-hidden="true"></i>Your inspection</span></div>
+        <p id="map-feedback" class="map-feedback" role="status">Demo markers are fictional; no real survey was performed. Your own markers use the GPS coordinates you enter in Review.</p>
+      </div>
+      <div class="map-canvas-column"><div class="map-demo-banner" id="map-demo-banner" {% if not map_mode %}hidden{% endif %}><div><strong>Fictional demo survey · Andhra Pradesh</strong><p><span id="demo-pole-count">8</span> poles · <span id="demo-reviewed-count">3</span> demo reviewed · <span id="demo-review-count">3</span> need review · <span id="demo-planned-count">2</span> planned</p></div><a href="/static/demo_poles.geojson" download="fictional-andhra-pradesh-demo-poles.geojson">Download demo poles ↓</a></div><div class="map-viewport" id="asset-map" role="region" aria-label="Asset map with separate fictional demonstration and your inspection layers"><div id="map-placeholder" class="map-placeholder"><span class="mono">{% if map_mode %}ANDHRA PRADESH / FICTIONAL SURVEY{% else %}ASSET LOCATION OVERVIEW{% endif %}</span><span class="map-cross" aria-hidden="true">+</span><strong>Opening your asset map…</strong><p>The map loads automatically when it is in view.</p><span class="map-empty-label">Demo and personal locations are separate layers</span></div></div><p class="map-data-disclaimer">Demo coordinates, equipment and statuses are illustrative. No real survey was performed. Demo poles are excluded from your locations export.</p></div>
+    </section>
+{%- endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="Evaluate PolePilot with real model evidence, an isolated review workflow and downloadable results.">
+  <meta name="theme-color" content="#132922">
+  <title>{% if map_mode %}Asset map{% else %}Evaluation workspace{% endif %} — PolePilot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='evaluation.css') }}">
+  <script src="{{ url_for('static', filename='evaluation.js') }}" defer></script>
+</head>
+<body class="evaluation-page{% if map_mode %} map-page{% endif %}">
+  <a class="skip-link" href="#main">Skip to workspace</a>
+  <header class="site-header evaluation-header">
+    <a class="brand" href="/" aria-label="PolePilot home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>PolePilot<span class="brand-sub">INFRASTRUCTURE INTELLIGENCE</span></span></a>
+    <span class="workspace-name"><span class="status-dot"></span> {% if map_mode %}ASSET MAP{% else %}EVALUATION WORKSPACE{% endif %}</span>
+    <nav aria-label="Workspace navigation">{% if map_mode %}<a class="text-link" href="/">Product overview</a><a class="button button-small button-accent" href="/demo">Image inspection ↗</a>{% else %}<a class="button button-small button-accent" href="/map">Asset map <span aria-hidden="true">↗</span></a>{% endif %}{% if workspace_enabled %}<a class="button button-small button-outline" href="/workspace">Full workspace ↗</a>{% endif %}</nav>
+  </header>
+  <main id="main" class="evaluation-main">
+    {% if map_mode %}{{ asset_map() }}{% endif %}
+    <div class="evaluation-title" id="inspection-workspace"><div><p class="eyebrow">FROM FIELD IMAGE TO REVIEWABLE EVIDENCE</p>{% if map_mode %}<h2>Inspect an image. Add its location.</h2>{% else %}<h1>Take a closer look.</h1>{% endif %}<p>Replay a real model run or try live inference. Inspect, review, and export your own result.</p></div><button id="reset-demo" class="button button-outline button-small" type="button" disabled>Reset session <span aria-hidden="true">↺</span></button></div>
+    <ol class="evaluation-steps" aria-label="Evaluation workflow"><li class="active" id="step-input"><span>01</span> Choose an input</li><li id="step-inspect"><span>02</span> Inspect the evidence</li><li id="step-review"><span>03</span> Review &amp; export</li></ol>
+    <div id="global-error" class="notice notice-error" role="alert" hidden></div>
+    <noscript><p class="notice notice-error">This interactive demo needs JavaScript. Enable JavaScript to select a sample, inspect detections and export a review.</p></noscript>
+    <div class="evaluation-grid">
+      <aside class="input-panel panel" aria-labelledby="input-heading">
+        <div class="panel-heading"><h2 id="input-heading">Field inputs</h2><span id="sample-count" class="sample-count mono">Loading…</span></div>
+        <div class="input-inner"><p class="small-copy gallery-context">Recorded real-model examples, curated for demonstration — not a validation set.</p><label class="sample-search-label" for="sample-search">Find a field sample<input id="sample-search" type="search" placeholder="Search samples…" autocomplete="off"></label><p id="sample-match-count" class="sample-match-count" role="status"></p><div id="sample-list" class="sample-list" aria-label="Sample images"><p class="loading-copy">Loading field samples…</p></div>
+          <div class="input-divider"><span>OR USE YOUR OWN</span></div>
+          <label class="upload-control" for="evaluation-upload"><span class="upload-symbol" aria-hidden="true">↑</span><strong>Upload a field image</strong><span>JPG, PNG or WebP · up to 10 MB</span><input id="evaluation-upload" type="file" accept="image/jpeg,image/png,image/webp"></label>
+          <p class="small-copy">Pole acceptance: minimum {{ pole_min_confidence_percent }}% model confidence. Lower-scoring pole candidates are excluded.</p>
+          <p id="upload-name" class="filename" hidden></p>
+          <div class="run-controls"><button id="run-recorded" class="button button-accent" type="button" disabled>Run sample replay <span aria-hidden="true">↗</span></button><button id="run-live" class="button button-outline" type="button" disabled>Run live inference <span aria-hidden="true">→</span></button><p id="run-explanation" class="small-copy">Choose an image to begin. Replay uses a recorded real-model run.</p></div>
+        </div>
+        <div class="input-footer"><span class="mono">PRIVATE TO THIS SESSION</span><p>Your demo review is separate from production assets and training data.</p></div>
+      </aside>
+      <section class="image-panel panel" aria-labelledby="image-heading">
+        <div class="panel-heading"><h2 id="image-heading">Inspection view</h2><label class="overlay-switch"><input id="show-overlays" type="checkbox" checked> Show detections</label></div>
+        <div class="inspection-stage" id="inspection-stage">
+          <div class="image-placeholder" id="image-placeholder"><span class="placeholder-reticle" aria-hidden="true">+</span><strong>Your field evidence starts here.</strong><p>Choose a sample or upload an image.</p></div>
+          <div class="image-coordinate-space" id="image-coordinate-space" hidden><img id="inspection-image" alt="Selected utility survey image"><svg id="detection-overlay" role="img" aria-label="Model detection regions" xmlns="http://www.w3.org/2000/svg"></svg></div>
+          <div id="processing-cover" class="processing-cover" hidden><span class="spinner" aria-hidden="true"></span><strong id="processing-title">Preparing inspection</strong><p>Live inference runs on the server. CPU processing may take a minute.</p></div>
+        </div>
+        <div class="image-status"><span id="job-state" class="state-badge">AWAITING INPUT</span><span id="image-dimensions" class="mono">ORIGINAL FIELD EVIDENCE</span></div>
+        <div class="provenance" id="provenance"><span class="mono">EVIDENCE, NOT A SAFETY CERTIFICATE</span><p>Detections support inspection. Confidence is not calibrated accuracy; a qualified reviewer must verify findings.</p></div>
+      </section>
+      <section class="results-panel panel" aria-labelledby="results-heading">
+        <div class="panel-heading"><h2 id="results-heading">Inspection record</h2><span id="detection-count" class="count-badge">—</span></div>
+        <div class="result-tabs" role="tablist" aria-label="Inspection record sections"><button id="tab-evidence" role="tab" aria-selected="true" aria-controls="pane-evidence" tabindex="0" data-pane="evidence" type="button">Evidence</button><button id="tab-survey" role="tab" aria-selected="false" aria-controls="pane-survey" tabindex="-1" data-pane="survey" type="button">Survey</button><button id="tab-review" role="tab" aria-selected="false" aria-controls="pane-review" tabindex="-1" data-pane="review" type="button">Review</button></div>
+        <div id="pane-evidence" class="result-pane" role="tabpanel" aria-labelledby="tab-evidence"><div id="evidence-empty" class="empty-record"><span class="mono">NO RESULT YET</span><h3>Make every label<br>accountable.</h3><p>Run an inspection to see the model's detections and confidence. Select a label to locate it in the image.</p></div><div id="evidence-result" hidden><p class="result-help">Select a detection to highlight its region.</p><div id="detection-list" class="detection-list"></div><details class="record-details"><summary>Asset metadata</summary><dl id="master-data" class="metadata-list"></dl></details></div></div>
+        <div id="pane-survey" class="result-pane" role="tabpanel" aria-labelledby="tab-survey" hidden><div id="survey-empty" class="empty-record"><span class="mono">DETECTION-ASSISTED DRAFT</span><h3>Evidence into<br>structured fields.</h3><p>Questionnaire and classification outputs will appear after inspection. Confirm inferred values against field observations.</p></div><div id="survey-result" hidden><p class="result-help">Model-assisted output. Inferred values and rule defaults require verification; they are not field measurements.</p><h3 class="record-subheading">Classification</h3><dl id="classification-data" class="metadata-list"></dl><div id="survey-data" class="survey-data"></div></div></div>
+        <div id="pane-review" class="result-pane" role="tabpanel" aria-labelledby="tab-review" hidden><p class="result-help">Save your own assessment. This isolated demo does not approve production assets or trigger model training.</p><form id="review-form"><label for="review-decision">Review decision</label><select id="review-decision" disabled><option value="needs_review">Needs further review</option><option value="approved">Approved for this demo</option></select><label for="review-note">Reviewer note</label><textarea id="review-note" rows="4" maxlength="2000" placeholder="What did you verify? What needs a field check?" disabled></textarea><fieldset class="location-fields"><legend>Asset location <span>optional · reviewer-entered</span></legend><div><label for="review-latitude">Latitude</label><input id="review-latitude" type="number" min="-90" max="90" step="any" inputmode="decimal" placeholder="−90 to 90" disabled></div><div><label for="review-longitude">Longitude</label><input id="review-longitude" type="number" min="-180" max="180" step="any" inputmode="decimal" placeholder="−180 to 180" disabled></div><p>Enter both coordinates to locate this inspection. No location is inferred from the image.</p></fieldset><button id="save-review" class="button button-dark" type="submit" disabled>Save review <span aria-hidden="true">✓</span></button><p id="review-feedback" class="form-feedback" role="status"></p></form></div>
+        <div class="export-panel"><span class="mono">TAKE THE EVIDENCE WITH YOU</span><div><a id="export-json" class="button button-small button-outline" aria-disabled="true" tabindex="-1">Export JSON <span aria-hidden="true">↓</span></a><a id="export-csv" class="button button-small button-outline" aria-disabled="true" tabindex="-1">Export CSV <span aria-hidden="true">↓</span></a></div><p>Includes model provenance and your saved review.</p></div>
+      </section>
+    </div>
+    <div class="demo-underbar"><p id="live-status" role="status" aria-live="polite">Connecting to evaluation backend…</p><a href="/#workflow">New here? See the workflow ↗</a></div>
+    {% if not map_mode %}{{ asset_map() }}{% endif %}
+    <section class="feature-directory" aria-labelledby="directory-heading"><div class="directory-intro"><p class="eyebrow">BEYOND THIS INSPECTION</p><h2 id="directory-heading">Know what you can evaluate.</h2><p>The public demo covers image inference, evidence, survey output and isolated review. Wider workflows live in the authenticated application.</p></div><div id="capability-list" class="capability-list"><p class="loading-copy">Loading feature availability…</p></div><details class="runtime-details"><summary>Model availability &amp; limitations</summary><div id="model-list" class="model-list"></div><ul id="limitations-list"></ul></details></section>
+  </main>
+  <footer class="evaluation-footer"><a href="/">← Back to product overview</a><span class="mono">POLEPILOT / HUMAN REVIEW REQUIRED</span></footer>
+</body>
+</html>

@@ -1,0 +1,65 @@
+name: polepilot
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      PG_HOST: db
+      PG_DB: polepilot
+      PG_USER: polepilot
+      PG_PASS: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      EVALUATION_DATA_DIR: /data/evaluation
+      SQLITE_PATH: /data/surveys.sqlite3
+      TRUST_PROXY: 'true'
+    volumes:
+      - app_data:/data
+      - training_data:/app/training_data
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - '8000'
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: polepilot
+      POSTGRES_USER: polepilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U polepilot -d polepilot']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-surveyai.live}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  postgres_data:
+  app_data:
+  training_data:
+  caddy_data:
+  caddy_config:

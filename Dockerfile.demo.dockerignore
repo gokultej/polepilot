@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+.data
+.build
+**/__pycache__
+*.db
+models
+training_data
+uploads
+static/demo_samples/*.mp4
+static/demo_samples/*.avi
+static/demo_samples/*.mov
+static/demo_samples/*.mkv

@@ -1,0 +1,108 @@
+{% set performance = evidence.performance %}
+{% set pole_model = performance.models | selectattr('file', 'equalto', 'pole_best6.pt') | first if performance else none %}
+{% set cable_model = performance.models | selectattr('file', 'equalto', 'cable_best.pt') | first if performance else none %}
+{% macro pct(value) %}{{ '%.2f'|format(value * 100) }}%{% endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="PolePilot helps utility teams turn pole photographs into component inventories, reviewable survey suggestions and exportable records for field follow-up.">
+  <meta name="theme-color" content="#132922">
+  <title>PolePilot — AI-assisted utility pole surveys</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='evaluation.css') }}">
+</head>
+<body class="showcase-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PolePilot home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>PolePilot<span class="brand-sub">INFRASTRUCTURE INTELLIGENCE</span></span></a>
+    <nav aria-label="Main navigation" class="main-nav"><a href="#why-surveys">Why pole surveys?</a><a href="#workflow">How it works</a><a href="#model-validation">Model results</a><a href="/map">Asset map ↗</a></nav>
+    <a class="button button-small button-dark" href="/demo">Explore the demo <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="main">
+    <section class="hero page-width">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> BUILT FOR INDIAN DISTRIBUTION ENVIRONMENTS</p>
+        <h1>Know what’s on<br><span>every utility pole.</span></h1>
+        <p class="hero-purpose">Pole surveys tell utilities what equipment is installed, where it is, and what needs a field check.</p>
+        <p class="hero-description">PolePilot organizes field photos into detected components, structured survey suggestions and records your team can review. Add verified GPS coordinates, confirm the findings, and export the evidence.</p>
+        <div class="hero-actions"><a class="button button-accent" href="/demo">Try the guided demo <span aria-hidden="true">↗</span></a><a class="text-link home-map-link" href="/map">Open asset map <span aria-hidden="true">↗</span></a></div>
+        <p class="hero-caption">No sign-up for the demo. Real model outputs. Your own review.</p>
+        <div class="hero-footnote regional-scope"><span class="mono">INDEPENDENTLY BUILT</span><p>An individually developed project for Indian distribution surveys, using real field imagery from Andhra Pradesh. Performance outside this environment has not been established.</p></div>
+      </div>
+      <div class="hero-visual">
+        <div class="inspection-shell">
+          <div class="inspection-toolbar"><span><span class="status-dot"></span> ASSET INSPECTION</span><span class="mono">FIELD IMAGE / PREVIEW</span></div>
+          <div class="hero-image-wrap">
+            <img class="hero-image" src="{{ url_for('static', filename='demo_samples/PHOTO-2026-05-21-11-32-37.jpg') }}" alt="Field photograph of an electricity distribution pole, crossarms, insulators and overhead lines" width="720" height="1280" fetchpriority="high">
+            <div class="schematic-box schematic-pole" aria-hidden="true"><span>POLE / INSPECTION REGION</span></div>
+            <div class="schematic-box schematic-hardware" aria-hidden="true"><span>COMPONENT DETAIL</span></div>
+            <div class="preview-label">SCHEMATIC PREVIEW · OPEN DEMO FOR MODEL OUTPUT</div>
+          </div>
+          <div class="inspection-caption"><span class="mono">PHOTO → DETECTIONS → SURVEY</span><span class="inspection-cross" aria-hidden="true">+</span></div>
+        </div>
+        {% if pole_model %}<a class="hero-evidence validation-preview" href="#model-validation"><span class="evidence-index">[ CHECKPOINT-REPORTED VALIDATION ]</span><strong>{{ pct(pole_model.boxes.map50) }}</strong><span class="validation-preview-label">Pole box mAP@50</span><span>Model validation score. Not overall application accuracy. See all results ↓</span></a>{% endif %}
+      </div>
+    </section>
+    {% if performance %}
+    <section class="validation-section page-width" id="model-validation" aria-labelledby="validation-heading">
+      <div class="validation-heading"><div><p class="eyebrow">MEASURED MODEL EVIDENCE / SAVED CHECKPOINTS</p><h2 id="validation-heading">Model validation results.</h2><p>These are validation metrics saved in the active model checkpoints. They describe model tasks, not the accuracy of a complete pole survey.</p></div><a class="text-link" href="{{ url_for('static', filename='model_evaluation.json') }}">View metric source JSON <span aria-hidden="true">↗</span></a></div>
+      {% if pole_model %}<div class="validation-highlight"><div class="validation-primary"><span class="mono">POLE DETECTION / BOXES</span><strong>{{ pct(pole_model.boxes.map50) }}</strong><span>Pole mAP@50</span><p>Detection quality at an overlap threshold of 50%.</p></div><div class="validation-secondary"><article><strong>{{ pct(pole_model.boxes.precision) }}</strong><h3>Precision</h3><p>How often predicted detections match labels.</p></article><article><strong>{{ pct(pole_model.boxes.recall) }}</strong><h3>Recall</h3><p>How many labeled objects the model finds.</p></article><article><strong>{{ pct(pole_model.boxes.map5095) }}</strong><h3>mAP@50–95</h3><p>A stricter range of localization thresholds.</p></article></div></div>{% endif %}
+      <p class="metric-explainer">mAP evaluates detection quality across confidence thresholds. Precision relates to false detections; recall relates to missed labels. Current pole acceptance requires at least {{ pole_min_confidence_percent }}% model confidence. The saved validation scores below have not been re-measured for this cutoff; none certifies a field observation.</p>
+      <p class="table-scroll-hint">Scroll the table to compare all metrics →</p>
+      <div class="validation-table-wrap" tabindex="0" role="region" aria-label="Bounding-box validation metrics for five models; scroll horizontally if needed"><table class="validation-table"><caption>Bounding-box results · checkpoint-reported validation split</caption><thead><tr><th scope="col">Specialist model / checkpoint date</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">mAP@50</th><th scope="col">mAP@50–95</th></tr></thead><tbody>{% for model in performance.models %}<tr><th scope="row"><strong>{{ model.name }}</strong><span>{{ model.file }} · {{ model.checkpoint_date[:10] }}</span></th><td>{{ pct(model.boxes.precision) }}</td><td>{{ pct(model.boxes.recall) }}</td><td class="metric-emphasis">{{ pct(model.boxes.map50) }}</td><td>{{ pct(model.boxes.map5095) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% if cable_model and cable_model.masks %}<div class="segmentation-note"><span class="mono">SEGMENTATION IS A SEPARATE TASK</span><p>Cable mask mAP@50 is <strong>{{ pct(cable_model.masks.map50) }}</strong>; stricter mask mAP@50–95 is <strong>{{ pct(cable_model.masks.map5095) }}</strong>. The bounding-box scores above do not describe mask quality.</p></div>{% endif %}
+      <details class="mask-metrics"><summary>View separate segmentation / mask results</summary><div class="validation-table-wrap" tabindex="0" role="region" aria-label="Separate mask validation metrics"><table class="validation-table"><caption>Mask results · models with segmentation metrics</caption><thead><tr><th scope="col">Model</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">Mask mAP@50</th><th scope="col">Mask mAP@50–95</th></tr></thead><tbody>{% for model in performance.models %}{% if model.masks is defined %}<tr><th scope="row">{{ model.name }}</th><td>{{ pct(model.masks.precision) }}</td><td>{{ pct(model.masks.recall) }}</td><td>{{ pct(model.masks.map50) }}</td><td>{{ pct(model.masks.map5095) }}</td></tr>{% endif %}{% endfor %}</tbody></table></div></details>
+      <div class="validation-limits"><strong>Overall app accuracy: not yet benchmarked.</strong><p>These are saved validation results, not a new evaluation or an independent end-to-end benchmark. Validation image count and separation from training have not been verified. Curated demo examples are not a held-out accuracy test.</p></div>
+    </section>
+    {% endif %}
+    <section class="purpose-stats page-width" aria-labelledby="stats-heading">
+      <h2 id="stats-heading" class="sr-only">The grid context and what this project demonstrates</h2>
+      <article class="industry-stat"><p class="eyebrow">GLOBAL GRID CONTEXT / IEA 2023</p><p class="stat-number">80 <span>million km</span></p><p class="industry-explanation">of power lines need adding or replacing worldwide by <strong>2040</strong> to meet all national climate and energy goals.</p><p class="stat-source"><a href="https://www.iea.org/news/lack-of-ambition-and-attention-risks-making-electricity-grids-the-weak-link-in-clean-energy-transitions" target="_blank" rel="noopener noreferrer">Source: IEA, 17 October 2023 ↗</a><span>Modernization context; not PolePilot’s impact.</span></p></article>
+      <div class="project-stats"><p class="eyebrow">IN THIS PROJECT / IMPLEMENTED &amp; REPLAYABLE</p><div class="project-stats-grid"><article><p class="stat-number">{{ evidence.model_count }}</p><h3>specialist models</h3><p>Pole, component, insulator, shed and cable inference.</p></article><article><p class="stat-number">{{ evidence.survey_fields }}</p><h3>suggested survey fields</h3><p>Autofill template coverage. Values require human review.</p></article><article><p class="stat-number">{{ evidence.detection_count }}</p><h3>detections / {{ evidence.sample_count }} sample photos</h3><p>Recorded sample output; not an accuracy benchmark.</p></article></div><a class="stats-demo-link" href="/demo">Inspect the recorded evidence yourself <span aria-hidden="true">→</span></a></div>
+    </section>
+    <section class="survey-purpose-section page-width" id="why-surveys" aria-labelledby="purpose-heading">
+      <div class="section-heading"><p class="eyebrow">WHY DO WE NEED POLE SURVEYS?</p><h2>Utilities need records<br>they can act on.</h2><p>A pole survey connects the installed equipment and its location to field observations. When photos and manual notes are scattered, that connection is hard to preserve and review.</p></div>
+      <div class="survey-purpose-grid">
+        <article><span class="step-number">01 / KNOW THE ASSET</span><h3>Keep the inventory useful.</h3><p>Teams need to know which poles, insulators and hardware are installed to plan upgrades and material requirements.</p><div class="purpose-output"><span class="mono">POLEPILOT HELPS</span><p>Component detections and structured survey suggestions give reviewers a starting point for the asset record.</p></div></article>
+        <article><span class="step-number">02 / PLAN THE FOLLOW-UP</span><h3>Give the next visit context.</h3><p>Maintenance teams need evidence for deciding what to check on site. A photograph alone does not establish a verified fault or safe clearance.</p><div class="purpose-output"><span class="mono">POLEPILOT HELPS</span><p>See detections against the original image and save a human review note identifying what still needs verification.</p></div></article>
+        <article><span class="step-number">03 / CONNECT FIELD &amp; OFFICE</span><h3>Keep evidence attached.</h3><p>Office reviewers need a consistent record linking the photo, asset location and field assessment rather than disconnected images and notes.</p><div class="purpose-output"><span class="mono">POLEPILOT HELPS</span><p>Bring the image, review and supplied GPS coordinates together, then export JSON, CSV or a GeoJSON asset layer.</p></div></article>
+      </div>
+    </section>
+    <section class="workflow-section" id="workflow">
+      <div class="page-width">
+        <div class="section-heading"><p class="eyebrow">THE WORKFLOW</p><h2>From field capture<br>to office review.</h2><p>Inspect the model evidence, confirm the survey suggestions and preserve the reviewer’s judgment with the record.</p></div>
+        <div class="workflow-grid">
+          <article><span class="step-number">01 / COLLECT</span><h3>Bring the field into focus.</h3><p>Start with a pole photograph or a survey video. Video processing tracks poles and selects representative frames for component inspection.</p><span class="workflow-output">Input: image or survey video <span aria-hidden="true">→</span></span></article>
+          <article><span class="step-number">02 / UNDERSTAND</span><h3>Look beyond the pole.</h3><p>Specialist local models identify poles, insulators, hardware and conductors. Inspect each detection against the original image.</p><span class="workflow-output">Output: visual evidence <span aria-hidden="true">→</span></span></article>
+          <article><span class="step-number">03 / REVIEW</span><h3>Make the record useful.</h3><p>Use detections to inform structured survey fields. In the full workspace, reviewers can correct annotations and export approved asset records.</p><span class="workflow-output">Result: a reviewable survey <span aria-hidden="true">↗</span></span></article>
+        </div>
+      </div>
+    </section>
+    <section class="capabilities-section page-width" id="capabilities">
+      <div class="section-heading"><p class="eyebrow">A CONNECTED TOOLKIT</p><h2>Built around the work.<br>Not just the model.</h2><p>Explore the image-to-review loop in the public demo. The authenticated workspace carries the wider survey workflow.</p></div>
+      <div class="feature-grid">
+        <article class="feature-lead"><span class="feature-index">01</span><div><span class="tag tag-demo">TRY IN DEMO</span><h3>Image inspection</h3><p>Run a supplied image or your own photograph. See labels, bounding regions and confidence alongside the evidence.</p><a class="text-link" href="/demo">Inspect a sample <span aria-hidden="true">↗</span></a></div></article>
+        <article><span class="feature-index">02</span><span class="tag">FULL WORKSPACE</span><h3>Video to pole frames</h3><p>Track poles through survey footage and select representative frames before running component inspection.</p></article>
+        <article><span class="feature-index">03</span><span class="tag tag-demo">TRY IN DEMO</span><h3>Survey assistance</h3><p>View detection-derived questionnaire output and classification. Field observations still need human confirmation.</p></article>
+        <article><span class="feature-index">04</span><span class="tag tag-demo">TRY IN DEMO</span><h3>Review, map &amp; export</h3><p>Explore a clearly labeled fictional Andhra Pradesh survey on the asset map. Add your own reviewed coordinates and export JSON, CSV or GeoJSON separately.</p></article>
+        <article><span class="feature-index">05</span><span class="tag">OPTIONAL PROVIDERS</span><h3>Vegetation context</h3><p>Investigate vegetation near poles and conductors. Cloud analysis needs configured providers; image-based distance estimates need field verification.</p></article>
+        <article><span class="feature-index">06</span><span class="tag">FULL WORKSPACE</span><h3>A feedback loop</h3><p>Export reviewed annotations as training data. Dataset preparation is supported; improved model performance requires separate training and validation.</p></article>
+      </div>
+    </section>
+    <section class="technical-section" id="technology">
+      <div class="page-width technical-grid">
+        <div><p class="eyebrow">UNDER THE HOOD</p><h2>Local vision.<br>Traceable output.</h2><p>A Flask backend coordinates specialist YOLO models, survey rules, review and exports. The public evaluation experience is isolated from production asset records.</p><a class="button button-accent" href="/demo">See it working <span aria-hidden="true">↗</span></a></div>
+        <div class="technical-notes">
+          <div class="pipeline-line"><span>FIELD IMAGE</span><b aria-hidden="true">↓</b><span>POLE → COMPONENTS → CONDUCTORS</span><b aria-hidden="true">↓</b><span>SURVEY DRAFT → HUMAN REVIEW → EXPORT</span></div>
+          <details open><summary>What this demo proves</summary><p>Inspect a reproducible recorded model run or request live image inference when enabled. Review evidence and download your results. Replay provenance is shown explicitly.</p></details>
+          <details><summary>What requires the full workspace</summary><p>PostgreSQL-backed assets, authenticated administrative review, video jobs, camera capture and training-data exports. Camera access requires HTTPS outside localhost.</p>{% if workspace_enabled %}<a class="text-link" href="/workspace">Open authenticated workspace →</a>{% else %}<p class="technical-muted">The full workspace is not enabled on this instance. Deployment configuration is supplied with the project.</p>{% endif %}</details>
+          <details><summary>Where human verification matters</summary><p>Model confidence is not calibrated accuracy. Occlusion, viewpoint and image quality affect results. Single-image clearance estimates are not survey-grade measurements, and do not certify electrical safety. Optional cloud interpretation is distinct from local detections.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer page-width"><a class="brand brand-footer" href="/">PolePilot <span class="brand-sub">INFRASTRUCTURE INTELLIGENCE</span></a><p>AI-powered infrastructure surveys.</p><a href="/demo">Open evaluation workspace ↗</a><span class="mono">HUMAN REVIEW REQUIRED</span></footer>
+</body>
+</html>

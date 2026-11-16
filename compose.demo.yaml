@@ -1,0 +1,57 @@
+name: polepilot-demo
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?Set APP_SECRET_KEY in .env.demo}
+      PRODUCT_NAME: PolePilot
+      WORKSPACE_ENABLED: 'false'
+      LIVE_INFERENCE_ENABLED: 'false'
+      EVALUATION_DATA_DIR: /data/evaluation
+      TRUST_PROXY: 'true'
+    mem_limit: 128m
+    volumes:
+      - demo_data:/data
+    expose:
+      - '8000'
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-surveyai.live}
+    mem_limit: 64m
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - demo_tls:/data
+      - demo_proxy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+volumes:
+  demo_data:
+  demo_tls:
+  demo_proxy_config:

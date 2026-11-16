@@ -1,0 +1,61 @@
+{
+  "image": {
+    "title": "Image Capture Guidelines",
+    "subtitle": "Up to 2 images can be uploaded per session. Both are processed together to generate a single result.",
+    "sections": [
+      {
+        "heading": "Image 1 — Pole Image",
+        "badge": "Mandatory",
+        "badge_color": "red",
+        "icon": "fa-circle-dot",
+        "tips": [
+          "Capture the complete pole from ground level to the very top.",
+          "Stand directly in front — straight-on view gives the best detection.",
+          "Ensure the image is sharp and non-blurry."
+        ]
+      },
+      {
+        "heading": "Image 2 — Pole Text Image",
+        "badge": "Optional",
+        "badge_color": "gray",
+        "icon": "fa-font",
+        "tips": [
+          "Upload only if black painted text is visible on the pole.",
+          "Frame the shot to capture only the text region.",
+          "Keep the text clear, fully visible, and well-lit."
+        ]
+      }
+    ]
+  },
+  "video": {
+    "title": "Video Survey Guidelines",
+    "subtitle": "Follow these guidelines while recording to ensure accurate pole detection across all frames.",
+    "sections": [
+      {
+        "heading": "Camera Movement",
+        "badge": "Movement",
+        "badge_color": "blue",
+        "icon": "fa-person-walking",
+        "tips": [
+          "Walk at a steady, medium pace throughout the survey.",
+          "Avoid sudden jerks or quick turns.",
+          "Do not run — fast motion blurs frames.",
+          "Avoid standing still for extended periods.",
+          "Maintain smooth, continuous camera motion."
+        ]
+      },
+      {
+        "heading": "Camera Direction",
+        "badge": "Framing",
+        "badge_color": "purple",
+        "icon": "fa-video",
+        "tips": [
+          "Always capture poles from the front — face the pole directly.",
+          "Walk in a straight inspection path along the pole line.",
+          "Keep the pole near the center of the frame at all times.",
+          "Ensure all pole components (crossarms, insulators) remain visible."
+        ]
+      }
+    ]
+  }
+}
